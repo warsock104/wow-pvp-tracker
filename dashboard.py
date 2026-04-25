@@ -340,7 +340,7 @@ else:
     df = load_bracket(mode)
     page_title = f"{mode} Arena — Class & Spec Analytics"
 
-min_games = st.sidebar.slider("Min games played (win rate filter)", 0, 100, 20, step=5)
+min_players = st.sidebar.slider("Min players per spec", 1, 50, 5)
 
 if mode == "Solo Shuffle":
     class_roles = [r for r in ROLES if r in {
@@ -398,7 +398,7 @@ df_clean["role"] = df_clean.apply(
 )
 if selected_roles:
     df_clean = df_clean[df_clean["role"].isin(selected_roles)]
-df_wr = df_clean[df_clean["played"] >= min_games]
+df_wr = df_clean
 
 if df_clean.empty:
     st.warning("No data for the selected roles.")
@@ -480,7 +480,7 @@ if mode in ("2v2", "3v3"):
         fig = px.bar(wr_class, x="character_class", y="avg_win_rate",
                      color="character_class", color_discrete_map=CLASS_COLORS,
                      category_orders={"character_class": ordered_classes_wr},
-                     title=f"Avg Win Rate by Class (min {min_games} games)",
+                     title="Avg Win Rate by Class",
                      labels={"character_class": "", "avg_win_rate": "Win Rate %"},
                      text=wr_class["avg_win_rate"].apply(lambda x: f"{x:.1f}%"),
                      template="plotly_dark")
@@ -564,7 +564,7 @@ if mode in ("2v2", "3v3"):
     st.plotly_chart(fig, use_container_width=True)
 
     # ── Row 4: Avg Rating by Spec (exclude no-data specs) ─
-    sd = spec_data[(spec_data["avg_rating"] > 0) & (spec_data["players"] >= 5)].sort_values("avg_rating", ascending=False)
+    sd = spec_data[(spec_data["avg_rating"] > 0) & (spec_data["players"] >= min_players)].sort_values("avg_rating", ascending=False)
     ordered_labels = sd["label"].tolist()
     _srat_min = sd["avg_rating"].min() if not sd.empty else 1500
     _srat_max = sd["avg_rating"].max() if not sd.empty else 2000
@@ -593,7 +593,7 @@ if mode in ("2v2", "3v3"):
     )
     spec_wr = all_arena_specs.merge(raw_wr_spec, on=["character_class", "spec"], how="left")
     spec_wr["label"] = spec_wr["spec"] + " (" + spec_wr["character_class"] + ")"
-    spec_wr = spec_wr[spec_wr["avg_win_rate"].notna() & (spec_wr["wr_players"] >= 5)].sort_values("avg_win_rate", ascending=False)
+    spec_wr = spec_wr[spec_wr["avg_win_rate"].notna() & (spec_wr["wr_players"] >= min_players)].sort_values("avg_win_rate", ascending=False)
     spec_wr["bar_text"] = spec_wr["avg_win_rate"].apply(lambda x: f"{x:.1f}%")
     ordered_wr_labels = spec_wr["label"].tolist()
     _swrmin = spec_wr["avg_win_rate"].min() if not spec_wr.empty else 45
@@ -602,7 +602,7 @@ if mode in ("2v2", "3v3"):
     fig = px.bar(spec_wr, x="label", y="avg_win_rate",
                  color="character_class", color_discrete_map=CLASS_COLORS,
                  category_orders={"label": ordered_wr_labels},
-                 title=f"Avg Win Rate by Spec (min {min_games} games played, min 5 players)",
+                 title=f"Avg Win Rate by Spec (min {min_players} players)",
                  labels={"label": "", "avg_win_rate": "Win Rate %"},
                  text=spec_wr["bar_text"],
                  template="plotly_dark")
@@ -708,7 +708,7 @@ else:
             .reset_index()
         )
         avg_rat = spec_base.merge(avg_rat, on="spec", how="left")
-        avg_rat = avg_rat[avg_rat["avg_rating"].notna() & (avg_rat["rat_players"] >= 5)].sort_values("avg_rating", ascending=False)
+        avg_rat = avg_rat[avg_rat["avg_rating"].notna() & (avg_rat["rat_players"] >= min_players)].sort_values("avg_rating", ascending=False)
         _ss_rat_min = avg_rat["avg_rating"].min() if not avg_rat.empty else 1500
         _ss_rat_max = avg_rat["avg_rating"].max() if not avg_rat.empty else 2000
         _ss_rat_floor = max(0, int(_ss_rat_min // 100) * 100 - 50)
@@ -737,13 +737,13 @@ else:
             .reset_index()
         )
         wr = spec_base.merge(wr, on="spec", how="left")
-        wr = wr[wr["avg_win_rate"].notna() & (wr["wr_players"] >= 5)].sort_values("avg_win_rate", ascending=False)
+        wr = wr[wr["avg_win_rate"].notna() & (wr["wr_players"] >= min_players)].sort_values("avg_win_rate", ascending=False)
         wr["bar_text"] = wr["avg_win_rate"].apply(lambda x: f"{x:.1f}%")
         _ss_wr_min = wr["avg_win_rate"].min() if not wr.empty else 45
         _ss_wr_max = wr["avg_win_rate"].max() if not wr.empty else 55
         _ss_wr_floor = max(0, min(round(_ss_wr_min) - 2, 47))
         fig = px.bar(wr, x="spec", y="avg_win_rate",
-                     title=f"Avg Win Rate by Spec (min {min_games} games played, min 5 players)",
+                     title=f"Avg Win Rate by Spec (min {min_players} players)",
                      labels={"spec": "", "avg_win_rate": "Win Rate %"},
                      text=wr["bar_text"],
                      color_discrete_sequence=[color],
