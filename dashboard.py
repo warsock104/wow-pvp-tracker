@@ -407,10 +407,10 @@ if mode in ("2v2", "3v3"):
                  category_orders={"character_class": ordered_classes_pct},
                  title="Class Representation %",
                  labels={"character_class": "", "pct": "% of Players"},
-                 text=counts["players"].apply(lambda x: f"{x:,}"),
+                 text=counts["pct"].apply(lambda x: f"{x:.1f}%"),
                  template="plotly_dark")
-    fig.update_layout(showlegend=False, yaxis=dict(ticksuffix="%"))
-    fig.update_traces(textposition="inside", textfont=dict(size=13))
+    fig.update_layout(showlegend=False, yaxis=dict(ticksuffix="%", range=[0, counts["pct"].max() * 1.18]))
+    fig.update_traces(textposition="outside", textfont=dict(size=13))
     add_bar_icons(fig, ordered_classes_pct, class_icons)
     st.plotly_chart(fig, use_container_width=True)
 
