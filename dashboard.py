@@ -490,13 +490,19 @@ if mode in ("2v2", "3v3"):
         .agg(players=("rating", "count"), avg_rating=("rating", "mean"))
         .reset_index()
     )
-    # Include every class/spec from the Blizzard API so specs with no arena data still appear
-    # Only include specs whose role matches the sidebar filter
+    # Build full spec list — prefer spec_icons keys (API names), fall back to ALL_SPECS
+    _spec_source = list(spec_icons.keys()) if spec_icons else [
+        (cls, sp) for cls, specs in ALL_SPECS.items() for sp in specs
+    ]
     all_arena_specs = pd.DataFrame(
-        [{"character_class": cls, "spec": sp} for (cls, sp) in spec_icons.keys()
-         if SPEC_ROLES.get((cls, sp), "Unknown") in selected_roles]
+        [{"character_class": cls, "spec": sp} for (cls, sp) in _spec_source
+         if SPEC_ROLES.get((cls, sp), "Unknown") in selected_roles],
+        columns=["character_class", "spec"],
     )
-    spec_data = all_arena_specs.merge(raw_spec_data, on=["character_class", "spec"], how="left")
+    if all_arena_specs.empty:
+        spec_data = raw_spec_data.copy()
+    else:
+        spec_data = all_arena_specs.merge(raw_spec_data, on=["character_class", "spec"], how="left")
     spec_data["players"] = spec_data["players"].fillna(0).astype(int)
     spec_data["avg_rating"] = spec_data["avg_rating"].fillna(0).round(0)
     spec_data["label"] = spec_data["spec"] + " (" + spec_data["character_class"] + ")"
