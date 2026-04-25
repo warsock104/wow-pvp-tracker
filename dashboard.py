@@ -343,7 +343,22 @@ if mode == "Solo Shuffle":
     }]
 else:
     class_roles = ROLES
-selected_roles = st.sidebar.multiselect("Roles", class_roles, default=class_roles)
+_roles_key  = f"roles_{mode}_{selected_class}"
+_roles_prev = _roles_key + "_prev"
+if _roles_key  not in st.session_state:
+    st.session_state[_roles_key]  = class_roles
+if _roles_prev not in st.session_state:
+    st.session_state[_roles_prev] = class_roles
+
+_raw_roles = st.sidebar.pills(
+    "Roles", options=class_roles, selection_mode="multi", key=_roles_key,
+)
+if not _raw_roles:
+    st.session_state[_roles_key] = st.session_state[_roles_prev]
+    st.rerun()
+else:
+    st.session_state[_roles_prev] = list(_raw_roles)
+selected_roles = st.session_state[_roles_key]
 
 st.sidebar.divider()
 st.sidebar.caption(f"Last updated: {load_last_updated()}")
