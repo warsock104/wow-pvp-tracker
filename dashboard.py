@@ -594,7 +594,7 @@ if mode in ("2v2", "3v3"):
     spec_wr = all_arena_specs.merge(raw_wr_spec, on=["character_class", "spec"], how="left")
     spec_wr["label"] = spec_wr["spec"] + " (" + spec_wr["character_class"] + ")"
     spec_wr = spec_wr[spec_wr["avg_win_rate"].notna() & (spec_wr["wr_players"] >= 5)].sort_values("avg_win_rate", ascending=False)
-    spec_wr["bar_text"] = spec_wr.apply(lambda r: f"{r['avg_win_rate']:.1f}% (n={int(r['wr_players'])})", axis=1)
+    spec_wr["bar_text"] = spec_wr["avg_win_rate"].apply(lambda x: f"{x:.1f}%")
     ordered_wr_labels = spec_wr["label"].tolist()
     _swrmin = spec_wr["avg_win_rate"].min() if not spec_wr.empty else 45
     _swrmax = spec_wr["avg_win_rate"].max() if not spec_wr.empty else 55
@@ -737,7 +737,7 @@ else:
         )
         wr = spec_base.merge(wr, on="spec", how="left")
         wr = wr[wr["avg_win_rate"].notna() & (wr["wr_players"] >= 5)].sort_values("avg_win_rate", ascending=False)
-        wr["bar_text"] = wr.apply(lambda r: f"{r['avg_win_rate']:.1f}% (n={int(r['wr_players'])})", axis=1)
+        wr["bar_text"] = wr["avg_win_rate"].apply(lambda x: f"{x:.1f}%")
         _ss_wr_min = wr["avg_win_rate"].min() if not wr.empty else 45
         _ss_wr_max = wr["avg_win_rate"].max() if not wr.empty else 55
         _ss_wr_floor = max(0, min(round(_ss_wr_min) - 2, 47))
