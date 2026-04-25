@@ -249,7 +249,7 @@ def get_supabase():
 def load_arena_trends(bracket: str) -> pd.DataFrame:
     resp = (
         get_supabase()
-        .table("pvp_daily_trends")
+        .table("pvp_daily_summary")
         .select("*")
         .eq("bracket", bracket)
         .order("snapshot_date")
@@ -262,7 +262,7 @@ def load_shuffle_trends(class_name: str) -> pd.DataFrame:
     slug = CLASS_SLUG_MAP[class_name]
     resp = (
         get_supabase()
-        .table("pvp_daily_trends")
+        .table("pvp_daily_summary")
         .select("*")
         .like("bracket", f"shuffle-{slug}-%")
         .order("snapshot_date")

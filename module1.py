@@ -226,6 +226,39 @@ def push_to_supabase(supabase, season_id, bracket, data, profile_map=None):
             on_conflict="season_id,bracket,rank,snapshot_date",
         ).execute()
 
+    # Build daily summary for this bracket
+    clean = [r for r in rows if r.get("character_class") and r.get("spec")]
+    if clean:
+        groups = {}
+        for r in clean:
+            key = (r["character_class"], r["spec"])
+            groups.setdefault(key, []).append(r)
+
+        summary_rows = []
+        for (cls, sp), grp in groups.items():
+            ratings   = [r["rating"] for r in grp if r.get("rating") is not None]
+            win_rates = [
+                r["wins"] / r["played"] * 100
+                for r in grp
+                if r.get("wins") is not None and r.get("played")
+            ]
+            summary_rows.append({
+                "snapshot_date":   snapshot_date,
+                "season_id":       season_id,
+                "bracket":         bracket,
+                "character_class": cls,
+                "spec":            sp,
+                "players":         len(grp),
+                "avg_rating":      round(sum(ratings) / len(ratings), 2) if ratings else None,
+                "max_rating":      max(ratings) if ratings else None,
+                "avg_win_rate":    round(sum(win_rates) / len(win_rates), 2) if win_rates else None,
+            })
+
+        supabase.table("pvp_daily_summary").upsert(
+            summary_rows,
+            on_conflict="snapshot_date,bracket,character_class,spec",
+        ).execute()
+
     return len(rows)
 
 # -----------------------------
@@ -267,9 +300,9 @@ def main():
         print(f"{count} entries inserted.")
         time.sleep(0.2)
 
-    cutoff = (date.today() - timedelta(days=90)).isoformat()
+    cutoff = (date.today() - timedelta(days=7)).isoformat()
     supabase.table("pvp_leaderboard").delete().lt("snapshot_date", cutoff).execute()
-    print(f"Pruned snapshots older than {cutoff}.")
+    print(f"Pruned raw snapshots older than {cutoff}.")
 
     print(f"[{datetime.now()}] Done.")
 
