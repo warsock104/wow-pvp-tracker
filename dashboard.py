@@ -155,11 +155,14 @@ TIER_COLORS   = {
 @st.cache_data(ttl=82800)
 def load_blizzard_icons():
     """Fetch class + spec icon URLs from Blizzard media API. Cached 23 h."""
-    token = requests.post(
+    token_resp = requests.post(
         "https://us.battle.net/oauth/token",
         data={"grant_type": "client_credentials"},
-        auth=(os.environ["BLIZZARD_CLIENT_ID"], os.environ["BLIZZARD_CLIENT_SECRET"]),
-    ).json()["access_token"]
+        auth=(os.environ["BLIZZARD_CLIENT_ID"].strip(), os.environ["BLIZZARD_CLIENT_SECRET"].strip()),
+    ).json()
+    if "access_token" not in token_resp:
+        raise RuntimeError(f"Blizzard auth failed: {token_resp}")
+    token = token_resp["access_token"]
 
     headers = {"Authorization": f"Bearer {token}"}
     params  = {"namespace": "static-us", "locale": "en_US"}
@@ -356,7 +359,11 @@ st.sidebar.caption("Refreshes daily at 6 AM EST via GitHub Actions.")
 # ─────────────────────────────────────────────
 # LOAD ICONS
 # ─────────────────────────────────────────────
-class_icons, spec_icons = load_blizzard_icons()
+try:
+    class_icons, spec_icons = load_blizzard_icons()
+except Exception as _icon_err:
+    st.warning(f"Icons unavailable: {_icon_err}")
+    class_icons, spec_icons = {}, {}
 
 # ─────────────────────────────────────────────
 # MAIN
