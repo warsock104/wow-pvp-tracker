@@ -465,7 +465,7 @@ if mode in ("2v2", "3v3"):
             yaxis=dict(range=[_cwr_floor, _cwr_max + (_cwr_max - _cwr_floor) * 0.2]),
         )
         fig.add_hline(y=50, line_dash="dash", line_color="rgba(255,255,255,0.25)",
-                      annotation_text="50%", annotation_position="right")
+                      annotation_text="50%", annotation_position="top left")
         add_bar_icons(fig, ordered_classes_wr, class_icons)
         st.plotly_chart(fig, use_container_width=True)
 
@@ -585,7 +585,7 @@ if mode in ("2v2", "3v3"):
         yaxis=dict(range=[_swrfloor, _swrmax + (_swrmax - _swrfloor) * 0.2]),
     )
     fig.add_hline(y=50, line_dash="dash", line_color="rgba(255,255,255,0.25)",
-                  annotation_text="50%", annotation_position="right")
+                  annotation_text="50%", annotation_position="top left")
     add_bar_icons(fig, ordered_wr_labels, label_icon_map, bottom_margin=140, size_factor=1.0)
     st.plotly_chart(fig, use_container_width=True)
 
