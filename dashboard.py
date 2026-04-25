@@ -586,13 +586,15 @@ if mode in ("2v2", "3v3"):
 
     # ── Row 5: Avg Win Rate by Spec (exclude no-data specs) ─
     raw_wr_spec = (
-        df_wr.groupby(["character_class", "spec"])["win_rate"]
-        .mean().round(1).reset_index()
-        .rename(columns={"win_rate": "avg_win_rate"})
+        df_wr.groupby(["character_class", "spec"])
+        .agg(avg_win_rate=("win_rate", "mean"), wr_players=("win_rate", "count"))
+        .round({"avg_win_rate": 1})
+        .reset_index()
     )
     spec_wr = all_arena_specs.merge(raw_wr_spec, on=["character_class", "spec"], how="left")
     spec_wr["label"] = spec_wr["spec"] + " (" + spec_wr["character_class"] + ")"
-    spec_wr = spec_wr[spec_wr["avg_win_rate"].notna()].sort_values("avg_win_rate", ascending=False)
+    spec_wr = spec_wr[spec_wr["avg_win_rate"].notna() & (spec_wr["wr_players"] >= 5)].sort_values("avg_win_rate", ascending=False)
+    spec_wr["bar_text"] = spec_wr.apply(lambda r: f"{r['avg_win_rate']:.1f}% (n={int(r['wr_players'])})", axis=1)
     ordered_wr_labels = spec_wr["label"].tolist()
     _swrmin = spec_wr["avg_win_rate"].min() if not spec_wr.empty else 45
     _swrmax = spec_wr["avg_win_rate"].max() if not spec_wr.empty else 55
@@ -600,9 +602,9 @@ if mode in ("2v2", "3v3"):
     fig = px.bar(spec_wr, x="label", y="avg_win_rate",
                  color="character_class", color_discrete_map=CLASS_COLORS,
                  category_orders={"label": ordered_wr_labels},
-                 title=f"Avg Win Rate by Spec (min {min_games} games)",
+                 title=f"Avg Win Rate by Spec (min {min_games} games played, min 5 players)",
                  labels={"label": "", "avg_win_rate": "Win Rate %"},
-                 text=spec_wr["avg_win_rate"].apply(lambda x: f"{x:.1f}%"),
+                 text=spec_wr["bar_text"],
                  template="plotly_dark")
     fig.update_traces(textposition="outside", textfont=dict(size=13))
     fig.update_layout(
@@ -728,19 +730,21 @@ else:
 
     with col3:
         wr = (
-            df_wr.groupby("spec")["win_rate"]
-            .mean().round(1).reset_index()
-            .rename(columns={"win_rate": "avg_win_rate"})
+            df_wr.groupby("spec")
+            .agg(avg_win_rate=("win_rate", "mean"), wr_players=("win_rate", "count"))
+            .round({"avg_win_rate": 1})
+            .reset_index()
         )
         wr = spec_base.merge(wr, on="spec", how="left")
-        wr = wr[wr["avg_win_rate"].notna()].sort_values("avg_win_rate", ascending=False)
+        wr = wr[wr["avg_win_rate"].notna() & (wr["wr_players"] >= 5)].sort_values("avg_win_rate", ascending=False)
+        wr["bar_text"] = wr.apply(lambda r: f"{r['avg_win_rate']:.1f}% (n={int(r['wr_players'])})", axis=1)
         _ss_wr_min = wr["avg_win_rate"].min() if not wr.empty else 45
         _ss_wr_max = wr["avg_win_rate"].max() if not wr.empty else 55
         _ss_wr_floor = max(0, min(round(_ss_wr_min) - 2, 47))
         fig = px.bar(wr, x="spec", y="avg_win_rate",
-                     title=f"Avg Win Rate by Spec (min {min_games} games)",
+                     title=f"Avg Win Rate by Spec (min {min_games} games played, min 5 players)",
                      labels={"spec": "", "avg_win_rate": "Win Rate %"},
-                     text=wr["avg_win_rate"].apply(lambda x: f"{x:.1f}%"),
+                     text=wr["bar_text"],
                      color_discrete_sequence=[color],
                      template="plotly_dark")
         fig.update_traces(textposition="outside", textfont=dict(size=13))
