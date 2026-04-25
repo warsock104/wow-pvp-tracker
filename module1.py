@@ -3,6 +3,7 @@ import time
 import os
 import json
 from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 from supabase import create_client
 
@@ -100,13 +101,12 @@ def get_access_token():
     return resp.json()["access_token"]
 
 # -----------------------------
-# API helper
+# API helper (game data)
 # -----------------------------
 def get(url, token, params=None):
     if params is None:
         params = {}
     params.setdefault("locale", LOCALE)
-    params.setdefault("access_token", token)
     headers = {
         "Authorization": f"Bearer {token}",
         "Battlenet-Namespace": NAMESPACE_DYNAMIC,
@@ -116,7 +116,7 @@ def get(url, token, params=None):
     return resp.json()
 
 # -----------------------------
-# Blizzard API calls
+# Blizzard leaderboard calls
 # -----------------------------
 def get_current_season(token):
     url = f"https://{REGION}.api.blizzard.com/data/wow/pvp-season/index"
@@ -131,26 +131,77 @@ def get_leaderboard(token, season_id, bracket):
     return get(url, token)
 
 # -----------------------------
-# Supabase upsert
+# Character profile enrichment
 # -----------------------------
-def push_to_supabase(supabase, season_id, bracket, data):
+def fetch_character_profile(token, realm_slug, character_name):
+    """Return (class_name, spec_name) for a single character, or (None, None) on failure."""
+    url = f"https://{REGION}.api.blizzard.com/profile/wow/character/{realm_slug}/{character_name.lower()}"
+    try:
+        resp = requests.get(url,
+            headers={"Authorization": f"Bearer {token}"},
+            params={"namespace": f"profile-{REGION}", "locale": LOCALE},
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            d = resp.json()
+            char_class = d.get("character_class", {}).get("name")
+            spec = d.get("active_spec", {}).get("name")
+            return char_class, spec
+    except Exception:
+        pass
+    return None, None
+
+def enrich_with_profiles(token, entries, max_workers=20):
+    """Parallel character profile lookups. Returns {(name, realm): (class, spec)}."""
+    profile_map = {}
+
+    def lookup(entry):
+        char = entry.get("character", {})
+        name = char.get("name", "")
+        realm = char.get("realm", {}).get("slug", "")
+        if not name or not realm:
+            return name, realm, None, None
+        char_class, spec = fetch_character_profile(token, realm, name)
+        return name, realm, char_class, spec
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(lookup, entry) for entry in entries]
+        for future in as_completed(futures):
+            name, realm, char_class, spec = future.result()
+            profile_map[(name, realm)] = (char_class, spec)
+
+    return profile_map
+
+# -----------------------------
+# Supabase insert
+# -----------------------------
+def push_to_supabase(supabase, season_id, bracket, data, profile_map=None):
     entries = data.get("entries", [])
     if not entries:
         return 0
 
     fetched_at = datetime.now(timezone.utc).isoformat()
-    char_class, spec = parse_class_spec(bracket)
+    bracket_class, bracket_spec = parse_class_spec(bracket)
+
     rows = []
     for entry in entries:
         char = entry.get("character", {})
         stats = entry.get("season_match_statistics", {})
+        name = char.get("name")
+        realm = char.get("realm", {}).get("slug")
+
+        if profile_map is not None:
+            char_class, spec = profile_map.get((name, realm), (None, None))
+        else:
+            char_class, spec = bracket_class, bracket_spec
+
         rows.append({
             "season_id": season_id,
             "bracket": bracket,
             "rank": entry.get("rank"),
             "rating": entry.get("rating"),
-            "character_name": char.get("name"),
-            "realm_slug": char.get("realm", {}).get("slug"),
+            "character_name": name,
+            "realm_slug": realm,
             "character_class": char_class,
             "spec": spec,
             "faction": entry.get("faction", {}).get("type"),
@@ -160,13 +211,12 @@ def push_to_supabase(supabase, season_id, bracket, data):
             "fetched_at": fetched_at,
         })
 
-    # Deduplicate by (season_id, bracket, rank) — API can return duplicate ranks
+    # Deduplicate by (season_id, bracket, rank)
     seen = {}
     for row in rows:
         seen[(row["season_id"], row["bracket"], row["rank"])] = row
     rows = list(seen.values())
 
-    # Insert in batches of 500
     batch_size = 500
     for i in range(0, len(rows), batch_size):
         supabase.table("pvp_leaderboard").insert(rows[i:i + batch_size]).execute()
@@ -200,13 +250,19 @@ def main():
             print(f"skipped ({e.response.status_code})")
             continue
 
-        # Save local JSON backup
         filename = f"season_{season_id}_{bracket}.json"
         with open(os.path.join(OUTPUT_DIR, filename), "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-        # Push to Supabase
-        count = push_to_supabase(supabase, season_id, bracket, data)
+        # For 2v2/3v3 enrich each character with a profile lookup
+        if not bracket.startswith("shuffle-"):
+            entries = data.get("entries", [])
+            print(f"enriching {len(entries)} profiles...", end=" ", flush=True)
+            profile_map = enrich_with_profiles(token, entries)
+            count = push_to_supabase(supabase, season_id, bracket, data, profile_map=profile_map)
+        else:
+            count = push_to_supabase(supabase, season_id, bracket, data)
+
         print(f"{count} entries inserted.")
         time.sleep(0.2)
 
