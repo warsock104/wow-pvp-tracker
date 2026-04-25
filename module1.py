@@ -252,6 +252,7 @@ def push_to_supabase(supabase, season_id, bracket, data, profile_map=None):
                 "players":         len(grp),
                 "avg_rating":      round(sum(ratings) / len(ratings), 2) if ratings else None,
                 "max_rating":      max(ratings) if ratings else None,
+                "min_rating":      min(ratings) if ratings else None,
                 "avg_win_rate":    round(sum(win_rates) / len(win_rates), 2) if win_rates else None,
             })
 
