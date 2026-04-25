@@ -247,28 +247,34 @@ def get_supabase():
 
 @st.cache_data(ttl=3600)
 def load_arena_trends(bracket: str) -> pd.DataFrame:
-    resp = (
-        get_supabase()
-        .table("pvp_daily_summary")
-        .select("*")
-        .eq("bracket", bracket)
-        .order("snapshot_date")
-        .execute()
-    )
-    return pd.DataFrame(resp.data)
+    try:
+        resp = (
+            get_supabase()
+            .table("pvp_daily_summary")
+            .select("*")
+            .eq("bracket", bracket)
+            .order("snapshot_date")
+            .execute()
+        )
+        return pd.DataFrame(resp.data)
+    except Exception:
+        return pd.DataFrame()
 
 @st.cache_data(ttl=3600)
 def load_shuffle_trends(class_name: str) -> pd.DataFrame:
-    slug = CLASS_SLUG_MAP[class_name]
-    resp = (
-        get_supabase()
-        .table("pvp_daily_summary")
-        .select("*")
-        .like("bracket", f"shuffle-{slug}-%")
-        .order("snapshot_date")
-        .execute()
-    )
-    return pd.DataFrame(resp.data)
+    try:
+        slug = CLASS_SLUG_MAP[class_name]
+        resp = (
+            get_supabase()
+            .table("pvp_daily_summary")
+            .select("*")
+            .like("bracket", f"shuffle-{slug}-%")
+            .order("snapshot_date")
+            .execute()
+        )
+        return pd.DataFrame(resp.data)
+    except Exception:
+        return pd.DataFrame()
 
 @st.cache_data(ttl=3600)
 def load_last_updated() -> str:
