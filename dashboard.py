@@ -350,14 +350,17 @@ if _roles_key  not in st.session_state:
 if _roles_prev not in st.session_state:
     st.session_state[_roles_prev] = class_roles
 
-_raw_roles = st.sidebar.pills(
-    "Roles", options=class_roles, selection_mode="multi", key=_roles_key,
+def _guard_roles():
+    val = st.session_state[_roles_key]
+    if not val:
+        st.session_state[_roles_key] = st.session_state[_roles_prev]
+    else:
+        st.session_state[_roles_prev] = list(val)
+
+st.sidebar.pills(
+    "Roles", options=class_roles, selection_mode="multi",
+    key=_roles_key, on_change=_guard_roles,
 )
-if not _raw_roles:
-    st.session_state[_roles_key] = st.session_state[_roles_prev]
-    st.rerun()
-else:
-    st.session_state[_roles_prev] = list(_raw_roles)
 selected_roles = st.session_state[_roles_key]
 
 st.sidebar.divider()
