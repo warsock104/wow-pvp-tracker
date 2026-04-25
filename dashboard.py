@@ -327,19 +327,12 @@ selected_class = st.sidebar.selectbox(
     "Class", SHUFFLE_CLASSES, disabled=(mode != "Solo Shuffle")
 )
 
-TOP_N_OPTIONS = {"All players": None, "Top 50": 50, "Top 100": 100, "Top 200": 200, "Top 500": 500}
-top_n_label = st.sidebar.selectbox("Rank cutoff", list(TOP_N_OPTIONS.keys()), index=0)
-top_n = TOP_N_OPTIONS[top_n_label]
-
 if mode == "Solo Shuffle":
     df = load_shuffle_class(selected_class)
     page_title = f"Solo Shuffle — {selected_class}"
 else:
     df = load_bracket(mode)
     page_title = f"{mode} Arena — Class & Spec Analytics"
-
-if top_n and not df.empty and "rank" in df.columns:
-    df = df[df["rank"] <= top_n]
 
 min_games = st.sidebar.slider("Min games played (win rate filter)", 0, 100, 20, step=5)
 
@@ -417,7 +410,7 @@ if mode in ("2v2", "3v3"):
                  text=counts["players"].apply(lambda x: f"{x:,}"),
                  template="plotly_dark")
     fig.update_layout(showlegend=False, yaxis=dict(ticksuffix="%"))
-    fig.update_traces(textposition="inside", textfont=dict(size=10))
+    fig.update_traces(textposition="inside", textfont=dict(size=13))
     add_bar_icons(fig, ordered_classes_pct, class_icons)
     st.plotly_chart(fig, use_container_width=True)
 
@@ -429,15 +422,20 @@ if mode in ("2v2", "3v3"):
         .sort_values("avg_rating", ascending=False)
     )
     ordered_classes_rat = avg_rat["character_class"].tolist()
+    _rat_min = avg_rat["avg_rating"].min()
+    _rat_max = avg_rat["avg_rating"].max()
+    _rat_floor = max(0, int(_rat_min // 100) * 100 - 50)
     fig = px.bar(avg_rat, x="character_class", y="avg_rating",
                  color="character_class", color_discrete_map=CLASS_COLORS,
                  category_orders={"character_class": ordered_classes_rat},
                  title="Avg Rating by Class",
                  labels={"character_class": "", "avg_rating": "Avg Rating"},
+                 text=avg_rat["avg_rating"].astype(int).apply(lambda x: f"{x:,}"),
                  template="plotly_dark")
+    fig.update_traces(textposition="outside", textfont=dict(size=13))
     fig.update_layout(
         showlegend=False,
-        yaxis=dict(range=[1500, avg_rat["avg_rating"].max() + 100], dtick=100),
+        yaxis=dict(range=[_rat_floor, _rat_max + (_rat_max - _rat_floor) * 0.18]),
     )
     add_bar_icons(fig, ordered_classes_rat, class_icons)
     st.plotly_chart(fig, use_container_width=True)
@@ -451,13 +449,21 @@ if mode in ("2v2", "3v3"):
     )
     if not wr_class.empty:
         ordered_classes_wr = wr_class["character_class"].tolist()
+        _cwr_min = wr_class["avg_win_rate"].min()
+        _cwr_max = wr_class["avg_win_rate"].max()
+        _cwr_floor = max(0, min(round(_cwr_min) - 2, 47))
         fig = px.bar(wr_class, x="character_class", y="avg_win_rate",
                      color="character_class", color_discrete_map=CLASS_COLORS,
                      category_orders={"character_class": ordered_classes_wr},
                      title=f"Avg Win Rate by Class (min {min_games} games)",
                      labels={"character_class": "", "avg_win_rate": "Win Rate %"},
+                     text=wr_class["avg_win_rate"].apply(lambda x: f"{x:.1f}%"),
                      template="plotly_dark")
-        fig.update_layout(showlegend=False)
+        fig.update_traces(textposition="outside", textfont=dict(size=13))
+        fig.update_layout(
+            showlegend=False,
+            yaxis=dict(range=[_cwr_floor, _cwr_max + (_cwr_max - _cwr_floor) * 0.2]),
+        )
         fig.add_hline(y=50, line_dash="dash", line_color="rgba(255,255,255,0.25)",
                       annotation_text="50%", annotation_position="right")
         add_bar_icons(fig, ordered_classes_wr, class_icons)
@@ -525,7 +531,9 @@ if mode in ("2v2", "3v3"):
                  category_orders={"label": ordered_labels},
                  title="Spec Representation %",
                  labels={"label": "", "pct": "% of Players"},
+                 text=sd["players"].apply(lambda x: f"{x:,}"),
                  template="plotly_dark")
+    fig.update_traces(textposition="inside", textfont=dict(size=13))
     fig.update_layout(showlegend=True, legend=legend_style, yaxis=dict(ticksuffix="%"))
     add_bar_icons(fig, ordered_labels, label_icon_map, bottom_margin=140, size_factor=1.0)
     st.plotly_chart(fig, use_container_width=True)
@@ -533,16 +541,20 @@ if mode in ("2v2", "3v3"):
     # ── Row 4: Avg Rating by Spec (exclude no-data specs) ─
     sd = spec_data[spec_data["avg_rating"] > 0].sort_values("avg_rating", ascending=False)
     ordered_labels = sd["label"].tolist()
+    _srat_min = sd["avg_rating"].min() if not sd.empty else 1500
+    _srat_max = sd["avg_rating"].max() if not sd.empty else 2000
+    _srat_floor = max(0, int(_srat_min // 100) * 100 - 50)
     fig = px.bar(sd, x="label", y="avg_rating",
                  color="character_class", color_discrete_map=CLASS_COLORS,
                  category_orders={"label": ordered_labels},
                  title="Avg Rating by Spec",
                  labels={"label": "", "avg_rating": "Avg Rating"},
+                 text=sd["avg_rating"].astype(int).apply(lambda x: f"{x:,}"),
                  template="plotly_dark")
-    max_arena_rating = sd["avg_rating"].max() if not sd.empty else 2000
+    fig.update_traces(textposition="outside", textfont=dict(size=13))
     fig.update_layout(
         showlegend=True, legend=legend_style,
-        yaxis=dict(range=[1500, max_arena_rating + 100], dtick=100),
+        yaxis=dict(range=[_srat_floor, _srat_max + (_srat_max - _srat_floor) * 0.18]),
     )
     add_bar_icons(fig, ordered_labels, label_icon_map, bottom_margin=140, size_factor=1.0)
     st.plotly_chart(fig, use_container_width=True)
@@ -557,13 +569,21 @@ if mode in ("2v2", "3v3"):
     spec_wr["label"] = spec_wr["spec"] + " (" + spec_wr["character_class"] + ")"
     spec_wr = spec_wr[spec_wr["avg_win_rate"].notna()].sort_values("avg_win_rate", ascending=False)
     ordered_wr_labels = spec_wr["label"].tolist()
+    _swrmin = spec_wr["avg_win_rate"].min() if not spec_wr.empty else 45
+    _swrmax = spec_wr["avg_win_rate"].max() if not spec_wr.empty else 55
+    _swrfloor = max(0, min(round(_swrmin) - 2, 47))
     fig = px.bar(spec_wr, x="label", y="avg_win_rate",
                  color="character_class", color_discrete_map=CLASS_COLORS,
                  category_orders={"label": ordered_wr_labels},
                  title=f"Avg Win Rate by Spec (min {min_games} games)",
                  labels={"label": "", "avg_win_rate": "Win Rate %"},
+                 text=spec_wr["avg_win_rate"].apply(lambda x: f"{x:.1f}%"),
                  template="plotly_dark")
-    fig.update_layout(showlegend=True, legend=legend_style)
+    fig.update_traces(textposition="outside", textfont=dict(size=13))
+    fig.update_layout(
+        showlegend=True, legend=legend_style,
+        yaxis=dict(range=[_swrfloor, _swrmax + (_swrmax - _swrfloor) * 0.2]),
+    )
     fig.add_hline(y=50, line_dash="dash", line_color="rgba(255,255,255,0.25)",
                   annotation_text="50%", annotation_position="right")
     add_bar_icons(fig, ordered_wr_labels, label_icon_map, bottom_margin=140, size_factor=1.0)
@@ -649,7 +669,7 @@ else:
                      color_discrete_sequence=[color],
                      template="plotly_dark")
         fig.update_layout(showlegend=False, yaxis=dict(ticksuffix="%"))
-        fig.update_traces(textposition="inside", textfont=dict(size=10))
+        fig.update_traces(textposition="inside", textfont=dict(size=13))
         add_bar_icons(fig, counts["spec"].tolist(), this_spec_icons)
         st.plotly_chart(fig, use_container_width=True)
 
@@ -661,15 +681,19 @@ else:
         )
         avg_rat = spec_base.merge(avg_rat, on="spec", how="left")
         avg_rat = avg_rat[avg_rat["avg_rating"].notna()].sort_values("avg_rating", ascending=False)
-        max_shuffle_rating = avg_rat["avg_rating"].max() if not avg_rat.empty else 2000
+        _ss_rat_min = avg_rat["avg_rating"].min() if not avg_rat.empty else 1500
+        _ss_rat_max = avg_rat["avg_rating"].max() if not avg_rat.empty else 2000
+        _ss_rat_floor = max(0, int(_ss_rat_min // 100) * 100 - 50)
         fig = px.bar(avg_rat, x="spec", y="avg_rating",
                      title="Avg Rating by Spec",
                      labels={"spec": "", "avg_rating": "Avg Rating"},
+                     text=avg_rat["avg_rating"].astype(int).apply(lambda x: f"{x:,}"),
                      color_discrete_sequence=[color],
                      template="plotly_dark")
+        fig.update_traces(textposition="outside", textfont=dict(size=13))
         fig.update_layout(
             showlegend=False,
-            yaxis=dict(range=[1500, max_shuffle_rating + 100], dtick=100),
+            yaxis=dict(range=[_ss_rat_floor, _ss_rat_max + (_ss_rat_max - _ss_rat_floor) * 0.18]),
         )
         add_bar_icons(fig, avg_rat["spec"].tolist(), this_spec_icons)
         st.plotly_chart(fig, use_container_width=True)
@@ -685,12 +709,20 @@ else:
         )
         wr = spec_base.merge(wr, on="spec", how="left")
         wr = wr[wr["avg_win_rate"].notna()].sort_values("avg_win_rate", ascending=False)
+        _ss_wr_min = wr["avg_win_rate"].min() if not wr.empty else 45
+        _ss_wr_max = wr["avg_win_rate"].max() if not wr.empty else 55
+        _ss_wr_floor = max(0, min(round(_ss_wr_min) - 2, 47))
         fig = px.bar(wr, x="spec", y="avg_win_rate",
                      title=f"Avg Win Rate by Spec (min {min_games} games)",
                      labels={"spec": "", "avg_win_rate": "Win Rate %"},
+                     text=wr["avg_win_rate"].apply(lambda x: f"{x:.1f}%"),
                      color_discrete_sequence=[color],
                      template="plotly_dark")
-        fig.update_layout(showlegend=False)
+        fig.update_traces(textposition="outside", textfont=dict(size=13))
+        fig.update_layout(
+            showlegend=False,
+            yaxis=dict(range=[_ss_wr_floor, _ss_wr_max + (_ss_wr_max - _ss_wr_floor) * 0.2]),
+        )
         add_bar_icons(fig, wr["spec"].tolist(), this_spec_icons)
         st.plotly_chart(fig, use_container_width=True)
 
