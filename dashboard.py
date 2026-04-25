@@ -224,12 +224,7 @@ def add_bar_icons(fig, categories, icon_map, bottom_margin=120, size_factor=0.75
 # ─────────────────────────────────────────────
 @st.cache_resource
 def get_supabase():
-    key = (
-        os.environ["SUPABASE_KEY_A"]
-        + os.environ["SUPABASE_KEY_B"]
-        + os.environ["SUPABASE_KEY_C"]
-    )
-    return create_client(os.environ["SUPABASE_URL"], key)
+    return create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_KEY"])
 
 @st.cache_data(ttl=3600)
 def load_arena_trends(bracket: str) -> pd.DataFrame:
