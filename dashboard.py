@@ -531,10 +531,10 @@ if mode in ("2v2", "3v3"):
                  category_orders={"label": ordered_labels},
                  title="Spec Representation %",
                  labels={"label": "", "pct": "% of Players"},
-                 text=sd["players"].apply(lambda x: f"{x:,}"),
+                 text=sd["pct"].apply(lambda x: f"{x:.1f}%"),
                  template="plotly_dark")
-    fig.update_traces(textposition="inside", textfont=dict(size=13))
-    fig.update_layout(showlegend=True, legend=legend_style, yaxis=dict(ticksuffix="%"))
+    fig.update_traces(textposition="outside", textfont=dict(size=13))
+    fig.update_layout(showlegend=True, legend=legend_style, yaxis=dict(ticksuffix="%", range=[0, sd["pct"].max() * 1.18]))
     add_bar_icons(fig, ordered_labels, label_icon_map, bottom_margin=140, size_factor=1.0)
     st.plotly_chart(fig, use_container_width=True)
 
@@ -665,11 +665,11 @@ else:
         fig = px.bar(counts, x="spec", y="pct",
                      title="Spec Representation %",
                      labels={"spec": "", "pct": "% of Players"},
-                     text=counts["players"].apply(lambda x: f"{x:,}"),
+                     text=counts["pct"].apply(lambda x: f"{x:.1f}%"),
                      color_discrete_sequence=[color],
                      template="plotly_dark")
-        fig.update_layout(showlegend=False, yaxis=dict(ticksuffix="%"))
-        fig.update_traces(textposition="inside", textfont=dict(size=13))
+        fig.update_layout(showlegend=False, yaxis=dict(ticksuffix="%", range=[0, counts["pct"].max() * 1.18]))
+        fig.update_traces(textposition="outside", textfont=dict(size=13))
         add_bar_icons(fig, counts["spec"].tolist(), this_spec_icons)
         st.plotly_chart(fig, use_container_width=True)
 
