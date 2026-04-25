@@ -2,7 +2,7 @@ import requests
 import time
 import os
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 from supabase import create_client
@@ -181,6 +181,7 @@ def push_to_supabase(supabase, season_id, bracket, data, profile_map=None):
         return 0
 
     fetched_at = datetime.now(timezone.utc).isoformat()
+    snapshot_date = date.today().isoformat()
     bracket_class, bracket_spec = parse_class_spec(bracket)
 
     rows = []
@@ -209,17 +210,21 @@ def push_to_supabase(supabase, season_id, bracket, data, profile_map=None):
             "losses": stats.get("lost"),
             "played": stats.get("played"),
             "fetched_at": fetched_at,
+            "snapshot_date": snapshot_date,
         })
 
-    # Deduplicate by (season_id, bracket, rank)
+    # Deduplicate by (season_id, bracket, rank, snapshot_date)
     seen = {}
     for row in rows:
-        seen[(row["season_id"], row["bracket"], row["rank"])] = row
+        seen[(row["season_id"], row["bracket"], row["rank"], row["snapshot_date"])] = row
     rows = list(seen.values())
 
     batch_size = 500
     for i in range(0, len(rows), batch_size):
-        supabase.table("pvp_leaderboard").insert(rows[i:i + batch_size]).execute()
+        supabase.table("pvp_leaderboard").upsert(
+            rows[i:i + batch_size],
+            on_conflict="season_id,bracket,rank,snapshot_date",
+        ).execute()
 
     return len(rows)
 
@@ -238,10 +243,6 @@ def main():
 
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-    print("Clearing existing data...")
-    supabase.table("pvp_leaderboard").delete().gte("id", 0).execute()
-    print("Table cleared.")
-
     for bracket in ALL_BRACKETS:
         print(f"  Fetching {bracket}...", end=" ", flush=True)
         try:
@@ -250,7 +251,7 @@ def main():
             print(f"skipped ({e.response.status_code})")
             continue
 
-        filename = f"season_{season_id}_{bracket}.json"
+        filename = f"season_{season_id}_{bracket}_{date.today().isoformat()}.json"
         with open(os.path.join(OUTPUT_DIR, filename), "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
@@ -265,6 +266,10 @@ def main():
 
         print(f"{count} entries inserted.")
         time.sleep(0.2)
+
+    cutoff = (date.today() - timedelta(days=90)).isoformat()
+    supabase.table("pvp_leaderboard").delete().lt("snapshot_date", cutoff).execute()
+    print(f"Pruned snapshots older than {cutoff}.")
 
     print(f"[{datetime.now()}] Done.")
 
