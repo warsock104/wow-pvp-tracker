@@ -380,6 +380,7 @@ except Exception as _icon_err:
 # MAIN
 # ─────────────────────────────────────────────
 st.title(page_title)
+st.caption("Based on the top 1,000 ranked players per bracket.")
 
 if df.empty:
     st.warning("No data available.")
