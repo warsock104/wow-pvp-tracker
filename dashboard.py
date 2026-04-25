@@ -13,12 +13,20 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 # Streamlit Cloud exposes secrets via st.secrets, not os.environ — bridge them
-try:
-    for _k, _v in st.secrets.items():
-        if isinstance(_v, str):
-            os.environ.setdefault(_k, _v)
-except Exception:
-    pass
+_REQUIRED_SECRETS = [
+    "BLIZZARD_CLIENT_ID", "BLIZZARD_CLIENT_SECRET",
+    "SUPABASE_URL", "SUPABASE_KEY",
+]
+_missing = []
+for _k in _REQUIRED_SECRETS:
+    if _k not in os.environ:
+        try:
+            os.environ[_k] = st.secrets[_k]
+        except KeyError:
+            _missing.append(_k)
+if _missing:
+    st.error(f"Missing secrets: {', '.join(_missing)}. Add them in the app's Settings → Secrets.")
+    st.stop()
 
 # ─────────────────────────────────────────────
 # PAGE CONFIG
