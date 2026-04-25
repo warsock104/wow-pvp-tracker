@@ -564,7 +564,7 @@ if mode in ("2v2", "3v3"):
     st.plotly_chart(fig, use_container_width=True)
 
     # ── Row 4: Avg Rating by Spec (exclude no-data specs) ─
-    sd = spec_data[spec_data["avg_rating"] > 0].sort_values("avg_rating", ascending=False)
+    sd = spec_data[(spec_data["avg_rating"] > 0) & (spec_data["players"] >= 5)].sort_values("avg_rating", ascending=False)
     ordered_labels = sd["label"].tolist()
     _srat_min = sd["avg_rating"].min() if not sd.empty else 1500
     _srat_max = sd["avg_rating"].max() if not sd.empty else 2000
@@ -702,12 +702,13 @@ else:
 
     with col2:
         avg_rat = (
-            df_clean.groupby("spec")["rating"]
-            .mean().round(0).reset_index()
-            .rename(columns={"rating": "avg_rating"})
+            df_clean.groupby("spec")
+            .agg(avg_rating=("rating", "mean"), rat_players=("rating", "count"))
+            .round({"avg_rating": 0})
+            .reset_index()
         )
         avg_rat = spec_base.merge(avg_rat, on="spec", how="left")
-        avg_rat = avg_rat[avg_rat["avg_rating"].notna()].sort_values("avg_rating", ascending=False)
+        avg_rat = avg_rat[avg_rat["avg_rating"].notna() & (avg_rat["rat_players"] >= 5)].sort_values("avg_rating", ascending=False)
         _ss_rat_min = avg_rat["avg_rating"].min() if not avg_rat.empty else 1500
         _ss_rat_max = avg_rat["avg_rating"].max() if not avg_rat.empty else 2000
         _ss_rat_floor = max(0, int(_ss_rat_min // 100) * 100 - 50)
