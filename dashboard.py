@@ -77,7 +77,7 @@ SHUFFLE_CLASSES = list(CLASS_SLUG_MAP.keys())
 # Spec names as stored in DB for Solo Shuffle (derived from bracket slug via .title())
 ALL_SPECS = {
     "Death Knight":  ["Blood", "Frost", "Unholy"],
-    "Demon Hunter":  ["Havoc", "Vengeance"],
+    "Demon Hunter":  ["Devourer", "Havoc", "Vengeance"],
     "Druid":         ["Balance", "Feral", "Guardian", "Restoration"],
     "Evoker":        ["Augmentation", "Devastation", "Preservation"],
     "Hunter":        ["Beastmastery", "Marksmanship", "Survival"],
@@ -99,6 +99,7 @@ SPEC_ROLES = {
     ("Death Knight",  "Blood"):         "Tank",
     ("Death Knight",  "Frost"):         "Melee DPS",
     ("Death Knight",  "Unholy"):        "Melee DPS",
+    ("Demon Hunter",  "Devourer"):      "Melee DPS",
     ("Demon Hunter",  "Havoc"):         "Melee DPS",
     ("Demon Hunter",  "Vengeance"):     "Tank",
     ("Druid",         "Balance"):       "Ranged DPS",

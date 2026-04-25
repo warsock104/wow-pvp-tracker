@@ -24,6 +24,7 @@ SHUFFLE_BRACKETS = [
     "shuffle-deathknight-blood",
     "shuffle-deathknight-frost",
     "shuffle-deathknight-unholy",
+    "shuffle-demonhunter-devourer",
     "shuffle-demonhunter-havoc",
     "shuffle-demonhunter-vengeance",
     "shuffle-druid-balance",
