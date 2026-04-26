@@ -552,7 +552,11 @@ st.sidebar.caption("Refreshes daily at 6 AM EST via GitHub Actions.")
 # MAIN
 # ─────────────────────────────────────────────
 st.title(page_title)
-st.caption("Based on the top 1,000 ranked players per bracket.")
+st.caption(
+    "Based on the top 1,000 players per spec."
+    if mode in ("Solo Shuffle", "Shuffle Rankings")
+    else "Based on the top 1,000 ranked players per bracket."
+)
 
 # ─────────────────────────────────────────────
 # SHUFFLE RANKINGS MODE
