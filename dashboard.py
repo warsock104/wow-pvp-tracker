@@ -211,6 +211,10 @@ def load_blizzard_icons():
             else:
                 spec_icons[(key[1], key[2])] = result
 
+    # Blizzard API returns "Beast Mastery" but Solo Shuffle slugs use "Beastmastery"
+    if ("Hunter", "Beast Mastery") in spec_icons:
+        spec_icons[("Hunter", "Beastmastery")] = spec_icons[("Hunter", "Beast Mastery")]
+
     return class_icons, spec_icons
 
 
