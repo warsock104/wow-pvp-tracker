@@ -258,7 +258,7 @@ def push_to_supabase(supabase, season_id, bracket, data, profile_map=None):
 
         supabase.table("pvp_daily_summary").upsert(
             summary_rows,
-            on_conflict="snapshot_date,bracket,character_class,spec",
+            on_conflict="season_id,snapshot_date,bracket,character_class,spec",
         ).execute()
 
     return len(rows)
