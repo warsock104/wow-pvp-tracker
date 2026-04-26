@@ -220,7 +220,7 @@ def load_blizzard_icons():
 
 def _players_table_html(df, spec_icons, show_rank=True):
     """Render top players as an HTML table with class-colored armory links and spec icons."""
-    headers = (["Rank"] if show_rank else []) + ["Player", "Realm", "Rating", "Wins", "Losses", "Win Rate"]
+    headers = (["Rank"] if show_rank else []) + ["Player", "Rating", "Wins", "Losses", "Win Rate"]
     ths = "".join(f"<th>{h}</th>" for h in headers)
     rows = []
     for _, r in df.iterrows():
@@ -243,7 +243,6 @@ def _players_table_html(df, spec_icons, show_rank=True):
             cells.append(f"<td>{int(r.get('rank') or 0)}</td>")
         cells += [
             f'<td><a href="{armory}" target="_blank" style="color:{color};font-weight:600;text-decoration:none">{icon_html}{name}</a></td>',
-            f"<td style='color:#999'>{realm.replace('-', ' ').title()}</td>",
             f"<td>{int(r.get('rating') or 0):,}</td>",
             f"<td>{int(r.get('wins') or 0):,}</td>",
             f"<td>{int(r.get('losses') or 0):,}</td>",
