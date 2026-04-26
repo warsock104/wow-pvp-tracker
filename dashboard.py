@@ -674,7 +674,7 @@ if mode in ("2v2", "3v3"):
     st.divider()
     st.subheader("Top Players")
     top = df_clean.sort_values("rating", ascending=False).head(50).copy()
-    st.markdown(_players_table_html(top, show_rank=True), unsafe_allow_html=True)
+    st.html(_players_table_html(top, show_rank=True))
 
     # ── Historical Trends ─────────────────────────
     st.divider()
@@ -869,7 +869,7 @@ else:
     st.divider()
     st.subheader("Top Players")
     top = df_clean.sort_values("rating", ascending=False).head(50).copy()
-    st.markdown(_players_table_html(top, show_rank=False), unsafe_allow_html=True)
+    st.html(_players_table_html(top, show_rank=False))
 
     # ── Historical Trends ─────────────────────────
     st.divider()
