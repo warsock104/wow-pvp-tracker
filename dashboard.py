@@ -884,7 +884,7 @@ if mode in ("2v2", "3v3"):
                           template="plotly_dark")
             fig.update_layout(legend=dict(title="Class", bgcolor="rgba(0,0,0,0)", font=dict(size=11)))
             fig.update_layout(dragmode=False)
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         with tc2:
             fig = px.line(class_trends, x="snapshot_date", y="pct",
                           color="character_class", color_discrete_map=CLASS_COLORS,
@@ -896,7 +896,7 @@ if mode in ("2v2", "3v3"):
                 yaxis=dict(ticksuffix="%"),
             )
             fig.update_layout(dragmode=False)
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 # ─────────────────────────────────────────────
 # SOLO SHUFFLE MODE
@@ -1082,7 +1082,7 @@ else:
                           template="plotly_dark")
             fig.update_layout(legend=dict(title="Spec", bgcolor="rgba(0,0,0,0)"))
             fig.update_layout(dragmode=False)
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         with ts2:
             fig = px.line(trend_df, x="snapshot_date", y="pct", color="spec",
                           title="Spec Representation % Over Time",
@@ -1094,4 +1094,4 @@ else:
                 yaxis=dict(ticksuffix="%"),
             )
             fig.update_layout(dragmode=False)
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
