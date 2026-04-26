@@ -472,17 +472,16 @@ min_players = st.sidebar.slider("Min players per spec", 1, 50, 5)
 
 # ── Rating range filter (arena / solo modes only) ─────────────────────────
 if mode != "Shuffle Rankings" and not df.empty and "rating" in df.columns:
-    _r_floor = (int(df["rating"].min()) // 100) * 100
     _r_ceil  = ((int(df["rating"].max()) + 99) // 100) * 100
     st.sidebar.markdown("**Rating Range**")
     rating_range = st.sidebar.slider(
         "Rating Range",
-        min_value=_r_floor,
+        min_value=1000,
         max_value=_r_ceil,
-        value=(max(_r_floor, 1500), _r_ceil),
+        value=(1500, _r_ceil),
         step=25,
         label_visibility="collapsed",
-        key=f"rating_range_v2_{mode}_{selected_class}",
+        key=f"rating_range_v3_{mode}_{selected_class}",
     )
     rating_min, rating_max = rating_range
 else:
