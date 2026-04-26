@@ -298,10 +298,10 @@ def load_bracket(bracket: str) -> pd.DataFrame:
     resp = (
         get_supabase()
         .table("pvp_leaderboard")
-        .select("rank,character_class,spec,rating,wins,losses,played,faction,snapshot_date")
+        .select("rank,character_name,realm_slug,character_class,spec,rating,wins,losses,played,faction,snapshot_date")
         .eq("bracket", bracket)
         .order("snapshot_date", desc=True)
-        .limit(8000)
+        .limit(1000)
         .execute()
     )
     df = pd.DataFrame(resp.data)
@@ -323,7 +323,7 @@ def load_shuffle_class(class_name: str) -> pd.DataFrame:
         resp = (
             get_supabase()
             .table("pvp_leaderboard")
-            .select("rank,character_class,spec,rating,wins,losses,played,faction,bracket,snapshot_date")
+            .select("rank,character_name,realm_slug,character_class,spec,rating,wins,losses,played,faction,bracket,snapshot_date")
             .eq("bracket", bracket)
             .order("snapshot_date", desc=True)
             .limit(1000)
@@ -637,6 +637,29 @@ if mode in ("2v2", "3v3"):
     add_bar_icons(fig, ordered_wr_labels, label_icon_map, bottom_margin=140, size_factor=1.0)
     st.plotly_chart(fig, use_container_width=True)
 
+    # ── Top Players ───────────────────────────────
+    st.divider()
+    st.subheader("Top Players")
+    top = df_clean.sort_values("rating", ascending=False).head(50).copy()
+    top["armory_url"] = (
+        "https://worldofwarcraft.blizzard.com/en-us/character/us/"
+        + top["realm_slug"].fillna("").str.lower()
+        + "/"
+        + top["character_name"].fillna("").str.lower()
+    )
+    top["Win Rate"] = top["win_rate"].apply(lambda x: f"{x:.1f}%" if pd.notna(x) else "—")
+    top["Realm"] = top["realm_slug"].str.replace("-", " ", regex=False).str.title()
+    st.dataframe(
+        top.rename(columns={
+            "rank": "Rank", "character_name": "Player", "character_class": "Class",
+            "spec": "Spec", "rating": "Rating", "wins": "Wins", "losses": "Losses",
+            "armory_url": "Armory",
+        })[["Rank", "Player", "Realm", "Class", "Spec", "Rating", "Wins", "Losses", "Win Rate", "Armory"]],
+        column_config={"Armory": st.column_config.LinkColumn("Armory", display_text="🔗 View")},
+        use_container_width=True,
+        hide_index=True,
+    )
+
     # ── Historical Trends ─────────────────────────
     st.divider()
     st.subheader("Historical Trends")
@@ -825,6 +848,29 @@ else:
                  template="plotly_dark", barmode="stack")
     fig.update_layout(yaxis=dict(ticksuffix="%"), legend=dict(title="Tier", bgcolor="rgba(0,0,0,0)"))
     st.plotly_chart(fig, use_container_width=True)
+
+    # ── Top Players ───────────────────────────────
+    st.divider()
+    st.subheader("Top Players")
+    top = df_clean.sort_values("rating", ascending=False).head(50).copy()
+    top["armory_url"] = (
+        "https://worldofwarcraft.blizzard.com/en-us/character/us/"
+        + top["realm_slug"].fillna("").str.lower()
+        + "/"
+        + top["character_name"].fillna("").str.lower()
+    )
+    top["Win Rate"] = top["win_rate"].apply(lambda x: f"{x:.1f}%" if pd.notna(x) else "—")
+    top["Realm"] = top["realm_slug"].str.replace("-", " ", regex=False).str.title()
+    st.dataframe(
+        top.rename(columns={
+            "spec": "Spec", "character_name": "Player",
+            "rating": "Rating", "wins": "Wins", "losses": "Losses",
+            "armory_url": "Armory",
+        })[["Spec", "Player", "Realm", "Rating", "Wins", "Losses", "Win Rate", "Armory"]],
+        column_config={"Armory": st.column_config.LinkColumn("Armory", display_text="🔗 View")},
+        use_container_width=True,
+        hide_index=True,
+    )
 
     # ── Historical Trends ─────────────────────────
     st.divider()
