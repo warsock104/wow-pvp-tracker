@@ -91,7 +91,7 @@
             selected.add(cls.name);
           }
           render();
-          post("streamlit:componentValueChanged", {
+          post("streamlit:setComponentValue", {
             value:    Array.from(selected),
             dataType: "json"
           });
