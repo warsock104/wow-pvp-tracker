@@ -370,11 +370,15 @@ def _guard_roles():
 
 st.sidebar.pills(
     "Roles", options=class_roles, selection_mode="multi",
+    default=class_roles,
     key=_roles_key, on_change=_guard_roles,
 )
-selected_roles = st.session_state[_roles_key]
+selected_roles = st.session_state.get(_roles_key) or class_roles
 
 st.sidebar.divider()
+if st.sidebar.button("🔄 Reload Data"):
+    st.cache_data.clear()
+    st.rerun()
 st.sidebar.caption(f"Last updated: {load_last_updated()}")
 st.sidebar.caption("Refreshes daily at 6 AM EST via GitHub Actions.")
 
