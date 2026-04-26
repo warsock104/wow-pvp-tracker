@@ -213,23 +213,31 @@ def load_blizzard_icons():
     return class_icons, spec_icons
 
 
-def _players_table_html(df, show_rank=True):
-    """Render top players as an HTML table with class-colored armory links."""
+def _players_table_html(df, spec_icons, show_rank=True):
+    """Render top players as an HTML table with class-colored armory links and spec icons."""
     headers = (["Rank"] if show_rank else []) + ["Player", "Realm", "Rating", "Wins", "Losses", "Win Rate"]
     ths = "".join(f"<th>{h}</th>" for h in headers)
     rows = []
     for _, r in df.iterrows():
         name   = r.get("character_name") or ""
         realm  = r.get("realm_slug") or ""
-        color  = CLASS_COLORS.get(r.get("character_class") or "", "#AAAAAA")
+        cls    = r.get("character_class") or ""
+        spec   = r.get("spec") or ""
+        color  = CLASS_COLORS.get(cls, "#AAAAAA")
         armory = f"https://worldofwarcraft.blizzard.com/en-us/character/us/{realm.lower()}/{name.lower()}"
         wr     = r.get("win_rate")
         wr_str = f"{wr:.1f}%" if pd.notna(wr) else "—"
-        cells  = []
+        icon_url = spec_icons.get((cls, spec))
+        icon_html = (
+            f'<img src="{icon_url}" style="width:20px;height:20px;vertical-align:middle;'
+            f'margin-right:7px;border-radius:3px">'
+            if icon_url else ""
+        )
+        cells = []
         if show_rank:
             cells.append(f"<td>{int(r.get('rank') or 0)}</td>")
         cells += [
-            f'<td><a href="{armory}" target="_blank" style="color:{color};font-weight:600;text-decoration:none">{name}</a></td>',
+            f'<td><a href="{armory}" target="_blank" style="color:{color};font-weight:600;text-decoration:none">{icon_html}{name}</a></td>',
             f"<td style='color:#999'>{realm.replace('-', ' ').title()}</td>",
             f"<td>{int(r.get('rating') or 0):,}</td>",
             f"<td>{int(r.get('wins') or 0):,}</td>",
@@ -240,7 +248,7 @@ def _players_table_html(df, show_rank=True):
     return f"""<style>
       .pt{{width:100%;border-collapse:collapse;font-size:13px}}
       .pt th{{padding:8px 14px;text-align:left;color:#888;border-bottom:2px solid #333;white-space:nowrap}}
-      .pt td{{padding:7px 14px;border-bottom:1px solid #222;color:#ddd}}
+      .pt td{{padding:7px 14px;border-bottom:1px solid #222;color:#ddd;vertical-align:middle}}
       .pt tr:hover td{{background:rgba(255,255,255,.04)}}
       .pt a:hover{{text-decoration:underline!important}}
     </style>
@@ -674,7 +682,7 @@ if mode in ("2v2", "3v3"):
     st.divider()
     st.subheader("Top Players")
     top = df_clean.sort_values("rating", ascending=False).head(50).copy()
-    st.html(_players_table_html(top, show_rank=True))
+    st.html(_players_table_html(top, spec_icons, show_rank=True))
 
     # ── Historical Trends ─────────────────────────
     st.divider()
@@ -869,7 +877,7 @@ else:
     st.divider()
     st.subheader("Top Players")
     top = df_clean.sort_values("rating", ascending=False).head(50).copy()
-    st.html(_players_table_html(top, show_rank=False))
+    st.html(_players_table_html(top, spec_icons, show_rank=False))
 
     # ── Historical Trends ─────────────────────────
     st.divider()
