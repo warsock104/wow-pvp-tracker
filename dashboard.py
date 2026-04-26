@@ -213,6 +213,39 @@ def load_blizzard_icons():
     return class_icons, spec_icons
 
 
+def _players_table_html(df, show_rank=True):
+    """Render top players as an HTML table with class-colored armory links."""
+    headers = (["Rank"] if show_rank else []) + ["Player", "Realm", "Rating", "Wins", "Losses", "Win Rate"]
+    ths = "".join(f"<th>{h}</th>" for h in headers)
+    rows = []
+    for _, r in df.iterrows():
+        name   = r.get("character_name") or ""
+        realm  = r.get("realm_slug") or ""
+        color  = CLASS_COLORS.get(r.get("character_class") or "", "#AAAAAA")
+        armory = f"https://worldofwarcraft.blizzard.com/en-us/character/us/{realm.lower()}/{name.lower()}"
+        wr     = r.get("win_rate")
+        wr_str = f"{wr:.1f}%" if pd.notna(wr) else "—"
+        cells  = []
+        if show_rank:
+            cells.append(f"<td>{int(r.get('rank') or 0)}</td>")
+        cells += [
+            f'<td><a href="{armory}" target="_blank" style="color:{color};font-weight:600;text-decoration:none">{name}</a></td>',
+            f"<td style='color:#999'>{realm.replace('-', ' ').title()}</td>",
+            f"<td>{int(r.get('rating') or 0):,}</td>",
+            f"<td>{int(r.get('wins') or 0):,}</td>",
+            f"<td>{int(r.get('losses') or 0):,}</td>",
+            f"<td>{wr_str}</td>",
+        ]
+        rows.append(f"<tr>{''.join(cells)}</tr>")
+    return f"""<style>
+      .pt{{width:100%;border-collapse:collapse;font-size:13px}}
+      .pt th{{padding:8px 14px;text-align:left;color:#888;border-bottom:2px solid #333;white-space:nowrap}}
+      .pt td{{padding:7px 14px;border-bottom:1px solid #222;color:#ddd}}
+      .pt tr:hover td{{background:rgba(255,255,255,.04)}}
+      .pt a:hover{{text-decoration:underline!important}}
+    </style>
+    <table class="pt"><thead><tr>{ths}</tr></thead><tbody>{''.join(rows)}</tbody></table>"""
+
 def add_bar_icons(fig, categories, icon_map, bottom_margin=120, size_factor=0.75):
     """Overlay icons below each bar and hide text tick labels."""
     n = len(categories)
@@ -641,24 +674,7 @@ if mode in ("2v2", "3v3"):
     st.divider()
     st.subheader("Top Players")
     top = df_clean.sort_values("rating", ascending=False).head(50).copy()
-    top["armory_url"] = (
-        "https://worldofwarcraft.blizzard.com/en-us/character/us/"
-        + top["realm_slug"].fillna("").str.lower()
-        + "/"
-        + top["character_name"].fillna("").str.lower()
-    )
-    top["Win Rate"] = top["win_rate"].apply(lambda x: f"{x:.1f}%" if pd.notna(x) else "—")
-    top["Realm"] = top["realm_slug"].str.replace("-", " ", regex=False).str.title()
-    st.dataframe(
-        top.rename(columns={
-            "rank": "Rank", "character_name": "Player", "character_class": "Class",
-            "spec": "Spec", "rating": "Rating", "wins": "Wins", "losses": "Losses",
-            "armory_url": "Armory",
-        })[["Rank", "Player", "Realm", "Class", "Spec", "Rating", "Wins", "Losses", "Win Rate", "Armory"]],
-        column_config={"Armory": st.column_config.LinkColumn("Armory", display_text="🔗 View")},
-        use_container_width=True,
-        hide_index=True,
-    )
+    st.markdown(_players_table_html(top, show_rank=True), unsafe_allow_html=True)
 
     # ── Historical Trends ─────────────────────────
     st.divider()
@@ -853,24 +869,7 @@ else:
     st.divider()
     st.subheader("Top Players")
     top = df_clean.sort_values("rating", ascending=False).head(50).copy()
-    top["armory_url"] = (
-        "https://worldofwarcraft.blizzard.com/en-us/character/us/"
-        + top["realm_slug"].fillna("").str.lower()
-        + "/"
-        + top["character_name"].fillna("").str.lower()
-    )
-    top["Win Rate"] = top["win_rate"].apply(lambda x: f"{x:.1f}%" if pd.notna(x) else "—")
-    top["Realm"] = top["realm_slug"].str.replace("-", " ", regex=False).str.title()
-    st.dataframe(
-        top.rename(columns={
-            "spec": "Spec", "character_name": "Player",
-            "rating": "Rating", "wins": "Wins", "losses": "Losses",
-            "armory_url": "Armory",
-        })[["Spec", "Player", "Realm", "Rating", "Wins", "Losses", "Win Rate", "Armory"]],
-        column_config={"Armory": st.column_config.LinkColumn("Armory", display_text="🔗 View")},
-        use_container_width=True,
-        hide_index=True,
-    )
+    st.markdown(_players_table_html(top, show_rank=False), unsafe_allow_html=True)
 
     # ── Historical Trends ─────────────────────────
     st.divider()
