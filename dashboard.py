@@ -479,7 +479,7 @@ if mode != "Shuffle Rankings" and not df.empty and "rating" in df.columns:
         "Rating Range",
         min_value=_r_floor,
         max_value=_r_ceil,
-        value=(_r_floor, _r_ceil),
+        value=(max(_r_floor, 1500), _r_ceil),
         step=25,
         label_visibility="collapsed",
         key=f"rating_range_{mode}_{selected_class}",
