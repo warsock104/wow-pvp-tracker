@@ -116,10 +116,6 @@
 
         classData = args.classes || [];
 
-        // Only set selection from Python on first render.
-        // After that, keep local state — Streamlit sends the old args.selected
-        // on every rerun (before the new value is processed), which would
-        // otherwise reset the component's visual state and cause flicker.
         if (!initialized) {
           initialized = true;
           selected = new Set(
@@ -127,9 +123,11 @@
               ? args.selected
               : classData.map(function(c) { return c.name; })
           );
+          render();
         }
-
-        render();
+        // Subsequent render events are Streamlit reruns triggered by our own
+        // value changes — don't rebuild the DOM or the CSS opacity transition
+        // fires on every selected button, causing visible flicker.
       }
     });
 
