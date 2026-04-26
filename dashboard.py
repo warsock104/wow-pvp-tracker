@@ -1110,7 +1110,7 @@ else:
                  title="Rating Tier Distribution by Spec  (sorted by % at 2400+)",
                  labels={"spec": "", "pct": "% of Spec Players", "tier": "Tier"},
                  template="plotly_dark", barmode="stack")
-    fig.update_layout(yaxis=dict(ticksuffix="%"), legend=dict(title="Tier", bgcolor="rgba(0,0,0,0)"))
+    fig.update_layout(yaxis=dict(ticksuffix="%"), legend=dict(title="Tier", bgcolor="rgba(0,0,0,0)", traceorder="reversed"))
     fig.update_traces(hovertemplate="<b>%{x}</b><br>%{fullData.name}: %{y:.1f}%<extra></extra>")
     fig.update_layout(dragmode=False)
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
