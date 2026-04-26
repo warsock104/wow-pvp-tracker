@@ -381,19 +381,75 @@ def load_shuffle_class(class_name: str) -> pd.DataFrame:
     df["win_rate"] = df["wins"] / df["played"].replace(0, pd.NA) * 100
     return df
 
+@st.cache_data(ttl=3600, show_spinner="Loading shuffle rankings...")
+def load_shuffle_rankings() -> pd.DataFrame:
+    """Aggregated per-spec summary across all shuffle brackets from pvp_daily_summary."""
+    try:
+        resp = (
+            get_supabase()
+            .table("pvp_daily_summary")
+            .select("snapshot_date,character_class,spec,players,avg_rating,avg_win_rate,bracket")
+            .like("bracket", "shuffle-%")
+            .order("snapshot_date", desc=True)
+            .limit(1000)
+            .execute()
+        )
+        df = pd.DataFrame(resp.data)
+        if not df.empty:
+            df = df[df["snapshot_date"] == df["snapshot_date"].max()]
+            df["avg_rating"]   = pd.to_numeric(df["avg_rating"],   errors="coerce")
+            df["avg_win_rate"] = pd.to_numeric(df["avg_win_rate"], errors="coerce")
+            df["players"]      = pd.to_numeric(df["players"],      errors="coerce").fillna(0).astype(int)
+        return df
+    except Exception:
+        return pd.DataFrame()
+
+@st.cache_data(ttl=3600, show_spinner="Loading top shuffle players...")
+def load_shuffle_top_players() -> pd.DataFrame:
+    """Top 50 players by rating across all shuffle brackets."""
+    brackets = [
+        f"shuffle-{CLASS_SLUG_MAP[cls]}-{sp.lower()}"
+        for cls in SHUFFLE_CLASSES
+        for sp in ALL_SPECS.get(cls, [])
+    ]
+    frames = []
+    for bracket in brackets:
+        resp = (
+            get_supabase()
+            .table("pvp_leaderboard")
+            .select("character_name,realm_slug,character_class,spec,rating,wins,losses,played,snapshot_date")
+            .eq("bracket", bracket)
+            .order("snapshot_date", desc=True)
+            .limit(1000)
+            .execute()
+        )
+        if resp.data:
+            frames.append(pd.DataFrame(resp.data))
+    if not frames:
+        return pd.DataFrame()
+    df = pd.concat(frames, ignore_index=True)
+    if not df.empty:
+        df = df[df["snapshot_date"] == df["snapshot_date"].max()]
+        df = df.sort_values("rating", ascending=False).head(50)
+        df["win_rate"] = df["wins"] / df["played"].replace(0, pd.NA) * 100
+    return df
+
 # ─────────────────────────────────────────────
 # SIDEBAR
 # ─────────────────────────────────────────────
 st.sidebar.title("⚔️ WoW PvP Analytics")
-mode = st.sidebar.radio("Bracket Type", ["2v2", "3v3", "Solo Shuffle"])
+mode = st.sidebar.radio("Bracket Type", ["2v2", "3v3", "Solo Shuffle", "Shuffle Rankings"])
 
 selected_class = st.sidebar.selectbox(
-    "Class", SHUFFLE_CLASSES, disabled=(mode != "Solo Shuffle")
+    "Class", SHUFFLE_CLASSES, disabled=(mode not in ("Solo Shuffle",))
 )
 
 if mode == "Solo Shuffle":
     df = load_shuffle_class(selected_class)
     page_title = f"Solo Shuffle — {selected_class}"
+elif mode == "Shuffle Rankings":
+    df = pd.DataFrame()
+    page_title = "Solo Shuffle — All Specs Rankings"
 else:
     df = load_bracket(mode)
     page_title = f"{mode} Arena — Class & Spec Analytics"
@@ -449,6 +505,107 @@ except Exception as _icon_err:
 # ─────────────────────────────────────────────
 st.title(page_title)
 st.caption("Based on the top 1,000 ranked players per bracket.")
+
+# ─────────────────────────────────────────────
+# SHUFFLE RANKINGS MODE
+# ─────────────────────────────────────────────
+if mode == "Shuffle Rankings":
+    rank_df = load_shuffle_rankings()
+    if rank_df.empty:
+        st.info("No summary data yet — it populates after the next daily fetch at 6 AM EST.")
+        st.stop()
+
+    rank_df["role"] = rank_df.apply(
+        lambda r: SPEC_ROLES.get((r["character_class"], r["spec"]), "Unknown"), axis=1
+    )
+    if selected_roles:
+        rank_df = rank_df[rank_df["role"].isin(selected_roles)]
+    if rank_df.empty:
+        st.warning("No data for the selected roles.")
+        st.stop()
+
+    rank_df["label"] = rank_df["spec"] + " (" + rank_df["character_class"] + ")"
+    label_icon_map = {
+        row["label"]: spec_icons.get((row["character_class"], row["spec"]))
+        for _, row in rank_df.iterrows()
+    }
+    legend_style = dict(title="Class", bgcolor="rgba(0,0,0,0)", font=dict(size=11))
+
+    # ── Spec Representation % ─────────────────────
+    total = rank_df["players"].sum()
+    rep = rank_df.copy()
+    rep["pct"] = (rep["players"] / total * 100).round(1)
+    rep = rep.sort_values("pct", ascending=False)
+    ordered = rep["label"].tolist()
+    fig = px.bar(rep, x="label", y="pct",
+                 color="character_class", color_discrete_map=CLASS_COLORS,
+                 category_orders={"label": ordered},
+                 title="Spec Representation % — All Shuffle Specs",
+                 labels={"label": "", "pct": "% of Players"},
+                 text=rep["pct"].apply(lambda x: f"{x:.1f}%"),
+                 template="plotly_dark")
+    fig.update_traces(textposition="outside", textfont=dict(size=11))
+    fig.update_layout(showlegend=True, legend=legend_style,
+                      yaxis=dict(ticksuffix="%", range=[0, rep["pct"].max() * 1.18]))
+    add_bar_icons(fig, ordered, label_icon_map, bottom_margin=140, size_factor=1.0)
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ── Avg Rating by Spec ────────────────────────
+    rat = rank_df[rank_df["avg_rating"].notna() & (rank_df["players"] >= min_players)].copy()
+    rat = rat.sort_values("avg_rating", ascending=False)
+    ordered_rat = rat["label"].tolist()
+    _rmin = rat["avg_rating"].min() if not rat.empty else 1500
+    _rmax = rat["avg_rating"].max() if not rat.empty else 2000
+    _rfloor = max(0, int(_rmin // 100) * 100 - 50)
+    fig = px.bar(rat, x="label", y="avg_rating",
+                 color="character_class", color_discrete_map=CLASS_COLORS,
+                 category_orders={"label": ordered_rat},
+                 title=f"Avg Rating by Spec (min {min_players} players)",
+                 labels={"label": "", "avg_rating": "Avg Rating"},
+                 text=rat["avg_rating"].round(0).astype(int).apply(lambda x: f"{x:,}"),
+                 template="plotly_dark")
+    fig.update_traces(textposition="outside", textfont=dict(size=11))
+    fig.update_layout(showlegend=True, legend=legend_style,
+                      yaxis=dict(range=[_rfloor, _rmax + (_rmax - _rfloor) * 0.18]))
+    add_bar_icons(fig, ordered_rat, label_icon_map, bottom_margin=140, size_factor=1.0)
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ── Avg Win Rate by Spec ──────────────────────
+    wr = rank_df[rank_df["avg_win_rate"].notna() & (rank_df["players"] >= min_players)].copy()
+    wr = wr.sort_values("avg_win_rate", ascending=False)
+    ordered_wr = wr["label"].tolist()
+    _wmin = wr["avg_win_rate"].min() if not wr.empty else 45
+    _wmax = wr["avg_win_rate"].max() if not wr.empty else 55
+    _wfloor = max(0, min(round(_wmin) - 2, 47))
+    fig = px.bar(wr, x="label", y="avg_win_rate",
+                 color="character_class", color_discrete_map=CLASS_COLORS,
+                 category_orders={"label": ordered_wr},
+                 title=f"Avg Win Rate by Spec (min {min_players} players)",
+                 labels={"label": "", "avg_win_rate": "Win Rate %"},
+                 text=wr["avg_win_rate"].apply(lambda x: f"{x:.1f}%"),
+                 template="plotly_dark")
+    fig.update_traces(textposition="outside", textfont=dict(size=11))
+    fig.update_layout(showlegend=True, legend=legend_style,
+                      yaxis=dict(range=[_wfloor, _wmax + (_wmax - _wfloor) * 0.2]))
+    fig.add_hline(y=50, line_dash="dash", line_color="rgba(255,255,255,0.25)",
+                  annotation_text="50%", annotation_position="top left")
+    add_bar_icons(fig, ordered_wr, label_icon_map, bottom_margin=140, size_factor=1.0)
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ── Top Players ───────────────────────────────
+    st.divider()
+    st.subheader("Top Players")
+    top = load_shuffle_top_players()
+    if not top.empty:
+        if selected_roles:
+            top = top[top.apply(
+                lambda r: SPEC_ROLES.get((r["character_class"], r["spec"]), "Unknown") in selected_roles,
+                axis=1,
+            )]
+        if not top.empty:
+            st.html(_players_table_html(top, spec_icons, show_rank=False))
+
+    st.stop()
 
 if df.empty:
     st.warning("No data available.")
