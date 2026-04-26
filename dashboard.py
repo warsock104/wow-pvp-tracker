@@ -556,6 +556,15 @@ st.caption(
     else "Based on the top 1,000 ranked players per bracket."
 )
 
+st.markdown("""
+<style>
+.js-plotly-plot .plotly .cursor-crosshair,
+.js-plotly-plot .plotly .cursor-move,
+.js-plotly-plot .plotly .cursor-ew-resize,
+.js-plotly-plot .plotly .cursor-ns-resize { cursor: default !important; }
+</style>
+""", unsafe_allow_html=True)
+
 # ─────────────────────────────────────────────
 # SHUFFLE RANKINGS MODE
 # ─────────────────────────────────────────────
