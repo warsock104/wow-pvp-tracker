@@ -50,8 +50,9 @@
 <body>
   <div id="grid"></div>
   <script>
-    var classData = [];
-    var selected  = new Set();
+    var classData   = [];
+    var selected    = new Set();
+    var initialized = false;
 
     function post(type, payload) {
       window.parent.postMessage(
@@ -114,11 +115,19 @@
         document.body.style.background = bg;
 
         classData = args.classes || [];
-        selected  = new Set(
-          args.selected && args.selected.length
-            ? args.selected
-            : classData.map(function(c) { return c.name; })
-        );
+
+        // Only set selection from Python on first render.
+        // After that, keep local state — Streamlit sends the old args.selected
+        // on every rerun (before the new value is processed), which would
+        // otherwise reset the component's visual state and cause flicker.
+        if (!initialized) {
+          initialized = true;
+          selected = new Set(
+            args.selected && args.selected.length
+              ? args.selected
+              : classData.map(function(c) { return c.name; })
+          );
+        }
 
         render();
       }
