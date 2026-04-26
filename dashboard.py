@@ -798,15 +798,17 @@ if mode in ("2v2", "3v3"):
         tier_data[tier_data["tier"] == "2400+"]
         .sort_values("pct", ascending=False)["character_class"].tolist()
     )
+    _tier_remaining = [c for c in tier_data["character_class"].unique() if c not in top_tier_order]
+    full_tier_order = top_tier_order + _tier_remaining
     fig = px.bar(tier_data, x="character_class", y="pct", color="tier",
-                 category_orders={"character_class": top_tier_order, "tier": RATING_LABELS},
+                 category_orders={"character_class": full_tier_order, "tier": RATING_LABELS},
                  color_discrete_map=TIER_COLORS,
                  title="Rating Tier Distribution by Class  (sorted by % at 2400+)",
                  labels={"character_class": "", "pct": "% of Class Players", "tier": "Tier"},
                  template="plotly_dark", barmode="stack")
     fig.update_layout(yaxis=dict(ticksuffix="%"), legend=dict(title="Tier", bgcolor="rgba(0,0,0,0)", traceorder="reversed"))
     fig.update_traces(hovertemplate="<b>%{x}</b><br>%{fullData.name}: %{y:.1f}%<extra></extra>")
-    add_bar_icons(fig, top_tier_order, class_icons)
+    add_bar_icons(fig, full_tier_order, class_icons)
     fig.update_layout(dragmode=False)
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
@@ -1116,15 +1118,17 @@ else:
         spec_tier[spec_tier["tier"] == "2400+"]
         .sort_values("pct", ascending=False)["spec"].tolist()
     )
+    _spec_tier_remaining = [s for s in spec_tier["spec"].unique() if s not in top_spec_order]
+    full_spec_tier_order = top_spec_order + _spec_tier_remaining
     fig = px.bar(spec_tier, x="spec", y="pct", color="tier",
-                 category_orders={"spec": top_spec_order, "tier": RATING_LABELS},
+                 category_orders={"spec": full_spec_tier_order, "tier": RATING_LABELS},
                  color_discrete_map=TIER_COLORS,
                  title="Rating Tier Distribution by Spec  (sorted by % at 2400+)",
                  labels={"spec": "", "pct": "% of Spec Players", "tier": "Tier"},
                  template="plotly_dark", barmode="stack")
     fig.update_layout(yaxis=dict(ticksuffix="%"), legend=dict(title="Tier", bgcolor="rgba(0,0,0,0)", traceorder="reversed"))
     fig.update_traces(hovertemplate="<b>%{x}</b><br>%{fullData.name}: %{y:.1f}%<extra></extra>")
-    add_bar_icons(fig, top_spec_order, this_spec_icons)
+    add_bar_icons(fig, full_spec_tier_order, this_spec_icons)
     fig.update_layout(dragmode=False)
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
