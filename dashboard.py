@@ -9,6 +9,7 @@ from PIL import Image
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from supabase import create_client
 from dotenv import load_dotenv
+from class_filter import class_filter_widget
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
@@ -435,6 +436,15 @@ def load_shuffle_top_players() -> pd.DataFrame:
     return df
 
 # ─────────────────────────────────────────────
+# LOAD ICONS (needed by sidebar class filter)
+# ─────────────────────────────────────────────
+try:
+    class_icons, spec_icons = load_blizzard_icons()
+except Exception as _icon_err:
+    st.warning(f"Icons unavailable: {_icon_err}")
+    class_icons, spec_icons = {}, {}
+
+# ─────────────────────────────────────────────
 # SIDEBAR
 # ─────────────────────────────────────────────
 st.sidebar.title("⚔️ WoW PvP Analytics")
@@ -484,21 +494,37 @@ st.sidebar.pills(
 )
 selected_roles = st.session_state.get(_roles_key) or class_roles
 
+# ── Class filter (2v2 / 3v3 / Shuffle Rankings) ───────────────────────────
+if mode in ("2v2", "3v3", "Shuffle Rankings"):
+    _all_cls = list(CLASS_COLORS.keys())
+    _ck      = f"cls_{mode}"
+    if _ck not in st.session_state:
+        st.session_state[_ck] = _all_cls[:]
+
+    _cls_data = [
+        {"name": c, "icon": class_icons.get(c, ""), "color": CLASS_COLORS.get(c, "#555555")}
+        for c in _all_cls
+    ]
+
+    st.sidebar.markdown("**Classes**")
+    with st.sidebar:
+        _result = class_filter_widget(
+            classes=_cls_data,
+            selected=st.session_state[_ck],
+            key=f"cls_widget_{mode}",
+        )
+    if _result:
+        st.session_state[_ck] = _result
+    selected_classes = st.session_state[_ck] or _all_cls[:]
+else:
+    selected_classes = list(CLASS_COLORS.keys())
+
 st.sidebar.divider()
 if st.sidebar.button("🔄 Reload Data"):
     st.cache_data.clear()
     st.rerun()
 st.sidebar.caption(f"Last updated: {load_last_updated()}")
 st.sidebar.caption("Refreshes daily at 6 AM EST via GitHub Actions.")
-
-# ─────────────────────────────────────────────
-# LOAD ICONS
-# ─────────────────────────────────────────────
-try:
-    class_icons, spec_icons = load_blizzard_icons()
-except Exception as _icon_err:
-    st.warning(f"Icons unavailable: {_icon_err}")
-    class_icons, spec_icons = {}, {}
 
 # ─────────────────────────────────────────────
 # MAIN
@@ -520,6 +546,7 @@ if mode == "Shuffle Rankings":
     )
     if selected_roles:
         rank_df = rank_df[rank_df["role"].isin(selected_roles)]
+    rank_df = rank_df[rank_df["character_class"].isin(selected_classes)]
     if rank_df.empty:
         st.warning("No data for the selected roles.")
         st.stop()
@@ -605,6 +632,7 @@ if mode == "Shuffle Rankings":
                 lambda r: SPEC_ROLES.get((r["character_class"], r["spec"]), "Unknown") in selected_roles,
                 axis=1,
             )]
+        top = top[top["character_class"].isin(selected_classes)]
         if not top.empty:
             st.html(_players_table_html(top, spec_icons, show_rank=False))
 
@@ -620,6 +648,7 @@ df_clean["role"] = df_clean.apply(
 )
 if selected_roles:
     df_clean = df_clean[df_clean["role"].isin(selected_roles)]
+df_clean = df_clean[df_clean["character_class"].isin(selected_classes)]
 df_wr = df_clean
 
 if df_clean.empty:
@@ -871,6 +900,7 @@ if mode in ("2v2", "3v3"):
             }), include_groups=False)
             .reset_index()
         )
+        class_trends = class_trends[class_trends["character_class"].isin(selected_classes)]
         date_totals = class_trends.groupby("snapshot_date")["players"].sum().reset_index(name="total")
         class_trends = class_trends.merge(date_totals, on="snapshot_date")
         class_trends["pct"] = (class_trends["players"] / class_trends["total"] * 100).round(1)
