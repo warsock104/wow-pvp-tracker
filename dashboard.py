@@ -548,7 +548,7 @@ if mode == "Shuffle Rankings":
     fig.update_layout(showlegend=True, legend=legend_style,
                       yaxis=dict(ticksuffix="%", range=[0, rep["pct"].max() * 1.18]))
     add_bar_icons(fig, ordered, label_icon_map, bottom_margin=140, size_factor=1.0)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Avg Rating by Spec ────────────────────────
     rat = rank_df[rank_df["avg_rating"].notna() & (rank_df["players"] >= min_players)].copy()
@@ -568,7 +568,7 @@ if mode == "Shuffle Rankings":
     fig.update_layout(showlegend=True, legend=legend_style,
                       yaxis=dict(range=[_rfloor, _rmax + (_rmax - _rfloor) * 0.18]))
     add_bar_icons(fig, ordered_rat, label_icon_map, bottom_margin=140, size_factor=1.0)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Avg Win Rate by Spec ──────────────────────
     wr = rank_df[rank_df["avg_win_rate"].notna() & (rank_df["players"] >= min_players)].copy()
@@ -590,7 +590,7 @@ if mode == "Shuffle Rankings":
     fig.add_hline(y=50, line_dash="dash", line_color="rgba(255,255,255,0.25)",
                   annotation_text="50%", annotation_position="top left")
     add_bar_icons(fig, ordered_wr, label_icon_map, bottom_margin=140, size_factor=1.0)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Top Players ───────────────────────────────
     st.divider()
@@ -656,7 +656,7 @@ if mode in ("2v2", "3v3"):
     fig.update_layout(showlegend=False, yaxis=dict(ticksuffix="%", range=[0, counts["pct"].max() * 1.18]))
     fig.update_traces(textposition="outside", textfont=dict(size=13))
     add_bar_icons(fig, ordered_classes_pct, class_icons)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Row 2: Avg Rating by Class ────────────────
     avg_rat = (
@@ -682,7 +682,7 @@ if mode in ("2v2", "3v3"):
         yaxis=dict(range=[_rat_floor, _rat_max + (_rat_max - _rat_floor) * 0.18]),
     )
     add_bar_icons(fig, ordered_classes_rat, class_icons)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Row 3: Avg Win Rate by Class ──────────────
     wr_class = (
@@ -711,7 +711,7 @@ if mode in ("2v2", "3v3"):
         fig.add_hline(y=50, line_dash="dash", line_color="rgba(255,255,255,0.25)",
                       annotation_text="50%", annotation_position="top left")
         add_bar_icons(fig, ordered_classes_wr, class_icons)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Rating Tier Distribution by Class ─────────
     df_clean["tier"] = pd.cut(df_clean["rating"], bins=RATING_BINS, labels=RATING_LABELS, right=False)
@@ -730,7 +730,7 @@ if mode in ("2v2", "3v3"):
                  labels={"character_class": "", "pct": "% of Class Players", "tier": "Tier"},
                  template="plotly_dark", barmode="stack")
     fig.update_layout(yaxis=dict(ticksuffix="%"), legend=dict(title="Tier", bgcolor="rgba(0,0,0,0)"))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Spec Breakdown ────────────────────────────
     st.subheader("Spec Breakdown")
@@ -780,7 +780,7 @@ if mode in ("2v2", "3v3"):
     fig.update_traces(textposition="outside", textfont=dict(size=13))
     fig.update_layout(showlegend=True, legend=legend_style, yaxis=dict(ticksuffix="%", range=[0, sd["pct"].max() * 1.18]))
     add_bar_icons(fig, ordered_labels, label_icon_map, bottom_margin=140, size_factor=1.0)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Row 4: Avg Rating by Spec (exclude no-data specs) ─
     sd = spec_data[(spec_data["avg_rating"] > 0) & (spec_data["players"] >= min_players)].sort_values("avg_rating", ascending=False)
@@ -801,7 +801,7 @@ if mode in ("2v2", "3v3"):
         yaxis=dict(range=[_srat_floor, _srat_max + (_srat_max - _srat_floor) * 0.18]),
     )
     add_bar_icons(fig, ordered_labels, label_icon_map, bottom_margin=140, size_factor=1.0)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Row 5: Avg Win Rate by Spec (exclude no-data specs) ─
     raw_wr_spec = (
@@ -833,7 +833,7 @@ if mode in ("2v2", "3v3"):
     fig.add_hline(y=50, line_dash="dash", line_color="rgba(255,255,255,0.25)",
                   annotation_text="50%", annotation_position="top left")
     add_bar_icons(fig, ordered_wr_labels, label_icon_map, bottom_margin=140, size_factor=1.0)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Top Players ───────────────────────────────
     st.divider()
@@ -873,7 +873,7 @@ if mode in ("2v2", "3v3"):
                           labels={"snapshot_date": "", "avg_rating": "Avg Rating", "character_class": "Class"},
                           template="plotly_dark")
             fig.update_layout(legend=dict(title="Class", bgcolor="rgba(0,0,0,0)", font=dict(size=11)))
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         with tc2:
             fig = px.line(class_trends, x="snapshot_date", y="pct",
                           color="character_class", color_discrete_map=CLASS_COLORS,
@@ -884,7 +884,7 @@ if mode in ("2v2", "3v3"):
                 legend=dict(title="Class", bgcolor="rgba(0,0,0,0)", font=dict(size=11)),
                 yaxis=dict(ticksuffix="%"),
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 # ─────────────────────────────────────────────
 # SOLO SHUFFLE MODE
@@ -923,7 +923,7 @@ else:
         fig.update_layout(showlegend=False, yaxis=dict(ticksuffix="%", range=[0, counts["pct"].max() * 1.18]))
         fig.update_traces(textposition="outside", textfont=dict(size=13))
         add_bar_icons(fig, counts["spec"].tolist(), this_spec_icons)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     with col2:
         avg_rat = (
@@ -949,7 +949,7 @@ else:
             yaxis=dict(range=[_ss_rat_floor, _ss_rat_max + (_ss_rat_max - _ss_rat_floor) * 0.18]),
         )
         add_bar_icons(fig, avg_rat["spec"].tolist(), this_spec_icons)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Row 2: win rate + rating distribution ─────
     col3, col4 = st.columns(2)
@@ -979,7 +979,7 @@ else:
             yaxis=dict(range=[_ss_wr_floor, _ss_wr_max + (_ss_wr_max - _ss_wr_floor) * 0.2]),
         )
         add_bar_icons(fig, wr["spec"].tolist(), this_spec_icons)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     with col4:
         fig = px.histogram(df_clean, x="rating", color="spec",
@@ -992,7 +992,7 @@ else:
             legend=dict(title="Spec", bgcolor="rgba(0,0,0,0)"),
             yaxis_title="% of Spec",
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Row 3: Representation vs Win Rate scatter ──
     scatter_data = counts[["spec", "pct", "players"]].merge(
@@ -1009,7 +1009,7 @@ else:
     fig.add_hline(y=50, line_dash="dash", line_color="rgba(255,255,255,0.25)",
                   annotation_text="50% (balanced)", annotation_position="right")
     fig.update_layout(showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Rating Tier Distribution by Spec ──────────
     df_clean["tier"] = pd.cut(df_clean["rating"], bins=RATING_BINS, labels=RATING_LABELS, right=False)
@@ -1028,7 +1028,7 @@ else:
                  labels={"spec": "", "pct": "% of Spec Players", "tier": "Tier"},
                  template="plotly_dark", barmode="stack")
     fig.update_layout(yaxis=dict(ticksuffix="%"), legend=dict(title="Tier", bgcolor="rgba(0,0,0,0)"))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Top Players ───────────────────────────────
     st.divider()
@@ -1063,7 +1063,7 @@ else:
                           color_discrete_sequence=px.colors.qualitative.Set2,
                           template="plotly_dark")
             fig.update_layout(legend=dict(title="Spec", bgcolor="rgba(0,0,0,0)"))
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         with ts2:
             fig = px.line(trend_df, x="snapshot_date", y="pct", color="spec",
                           title="Spec Representation % Over Time",
@@ -1074,4 +1074,4 @@ else:
                 legend=dict(title="Spec", bgcolor="rgba(0,0,0,0)"),
                 yaxis=dict(ticksuffix="%"),
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
