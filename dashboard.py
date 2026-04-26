@@ -575,7 +575,8 @@ if mode == "Shuffle Rankings":
                  labels={"label": "", "pct": "% of Players"},
                  text=rep["pct"].apply(lambda x: f"{x:.1f}%"),
                  template="plotly_dark")
-    fig.update_traces(textposition="outside", textfont=dict(size=11))
+    fig.update_traces(textposition="outside", textfont=dict(size=11),
+                      hovertemplate="<b>%{x}</b><br>%{y:.1f}%<extra></extra>")
     fig.update_layout(showlegend=True, legend=legend_style,
                       yaxis=dict(ticksuffix="%", range=[0, rep["pct"].max() * 1.18]))
     add_bar_icons(fig, ordered, label_icon_map, bottom_margin=140, size_factor=1.0)
@@ -596,7 +597,8 @@ if mode == "Shuffle Rankings":
                  labels={"label": "", "avg_rating": "Avg Rating"},
                  text=rat["avg_rating"].round(0).astype(int).apply(lambda x: f"{x:,}"),
                  template="plotly_dark")
-    fig.update_traces(textposition="outside", textfont=dict(size=11))
+    fig.update_traces(textposition="outside", textfont=dict(size=11),
+                      hovertemplate="<b>%{x}</b><br>%{y:,.0f}<extra></extra>")
     fig.update_layout(showlegend=True, legend=legend_style,
                       yaxis=dict(range=[_rfloor, _rmax + (_rmax - _rfloor) * 0.18]))
     add_bar_icons(fig, ordered_rat, label_icon_map, bottom_margin=140, size_factor=1.0)
@@ -617,7 +619,8 @@ if mode == "Shuffle Rankings":
                  labels={"label": "", "avg_win_rate": "Win Rate %"},
                  text=wr["avg_win_rate"].apply(lambda x: f"{x:.1f}%"),
                  template="plotly_dark")
-    fig.update_traces(textposition="outside", textfont=dict(size=11))
+    fig.update_traces(textposition="outside", textfont=dict(size=11),
+                      hovertemplate="<b>%{x}</b><br>%{y:.1f}%<extra></extra>")
     fig.update_layout(showlegend=True, legend=legend_style,
                       yaxis=dict(range=[_wfloor, _wmax + (_wmax - _wfloor) * 0.2]))
     fig.add_hline(y=50, line_dash="dash", line_color="rgba(255,255,255,0.25)",
@@ -690,7 +693,8 @@ if mode in ("2v2", "3v3"):
                  text=counts["pct"].apply(lambda x: f"{x:.1f}%"),
                  template="plotly_dark")
     fig.update_layout(showlegend=False, yaxis=dict(ticksuffix="%", range=[0, counts["pct"].max() * 1.18]))
-    fig.update_traces(textposition="outside", textfont=dict(size=13))
+    fig.update_traces(textposition="outside", textfont=dict(size=13),
+                      hovertemplate="<b>%{x}</b><br>%{y:.1f}%<extra></extra>")
     add_bar_icons(fig, ordered_classes_pct, class_icons)
     fig.update_layout(dragmode=False)
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
@@ -713,7 +717,8 @@ if mode in ("2v2", "3v3"):
                  labels={"character_class": "", "avg_rating": "Avg Rating"},
                  text=avg_rat["avg_rating"].astype(int).apply(lambda x: f"{x:,}"),
                  template="plotly_dark")
-    fig.update_traces(textposition="outside", textfont=dict(size=13))
+    fig.update_traces(textposition="outside", textfont=dict(size=13),
+                      hovertemplate="<b>%{x}</b><br>%{y:,.0f}<extra></extra>")
     fig.update_layout(
         showlegend=False,
         yaxis=dict(range=[_rat_floor, _rat_max + (_rat_max - _rat_floor) * 0.18]),
@@ -741,7 +746,8 @@ if mode in ("2v2", "3v3"):
                      labels={"character_class": "", "avg_win_rate": "Win Rate %"},
                      text=wr_class["avg_win_rate"].apply(lambda x: f"{x:.1f}%"),
                      template="plotly_dark")
-        fig.update_traces(textposition="outside", textfont=dict(size=13))
+        fig.update_traces(textposition="outside", textfont=dict(size=13),
+                          hovertemplate="<b>%{x}</b><br>%{y:.1f}%<extra></extra>")
         fig.update_layout(
             showlegend=False,
             yaxis=dict(range=[_cwr_floor, _cwr_max + (_cwr_max - _cwr_floor) * 0.2]),
@@ -769,6 +775,7 @@ if mode in ("2v2", "3v3"):
                  labels={"character_class": "", "pct": "% of Class Players", "tier": "Tier"},
                  template="plotly_dark", barmode="stack")
     fig.update_layout(yaxis=dict(ticksuffix="%"), legend=dict(title="Tier", bgcolor="rgba(0,0,0,0)"))
+    fig.update_traces(hovertemplate="<b>%{x}</b><br>%{fullData.name}: %{y:.1f}%<extra></extra>")
     fig.update_layout(dragmode=False)
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
@@ -817,7 +824,8 @@ if mode in ("2v2", "3v3"):
                  labels={"label": "", "pct": "% of Players"},
                  text=sd["pct"].apply(lambda x: f"{x:.1f}%"),
                  template="plotly_dark")
-    fig.update_traces(textposition="outside", textfont=dict(size=13))
+    fig.update_traces(textposition="outside", textfont=dict(size=13),
+                      hovertemplate="<b>%{x}</b><br>%{y:.1f}%<extra></extra>")
     fig.update_layout(showlegend=True, legend=legend_style, yaxis=dict(ticksuffix="%", range=[0, sd["pct"].max() * 1.18]))
     add_bar_icons(fig, ordered_labels, label_icon_map, bottom_margin=140, size_factor=1.0)
     fig.update_layout(dragmode=False)
@@ -836,7 +844,8 @@ if mode in ("2v2", "3v3"):
                  labels={"label": "", "avg_rating": "Avg Rating"},
                  text=sd["avg_rating"].astype(int).apply(lambda x: f"{x:,}"),
                  template="plotly_dark")
-    fig.update_traces(textposition="outside", textfont=dict(size=13))
+    fig.update_traces(textposition="outside", textfont=dict(size=13),
+                      hovertemplate="<b>%{x}</b><br>%{y:,.0f}<extra></extra>")
     fig.update_layout(
         showlegend=True, legend=legend_style,
         yaxis=dict(range=[_srat_floor, _srat_max + (_srat_max - _srat_floor) * 0.18]),
@@ -867,7 +876,8 @@ if mode in ("2v2", "3v3"):
                  labels={"label": "", "avg_win_rate": "Win Rate %"},
                  text=spec_wr["bar_text"],
                  template="plotly_dark")
-    fig.update_traces(textposition="outside", textfont=dict(size=13))
+    fig.update_traces(textposition="outside", textfont=dict(size=13),
+                      hovertemplate="<b>%{x}</b><br>%{y:.1f}%<extra></extra>")
     fig.update_layout(
         showlegend=True, legend=legend_style,
         yaxis=dict(range=[_swrfloor, _swrmax + (_swrmax - _swrfloor) * 0.2]),
@@ -967,7 +977,8 @@ else:
                      color_discrete_sequence=[color],
                      template="plotly_dark")
         fig.update_layout(showlegend=False, yaxis=dict(ticksuffix="%", range=[0, counts["pct"].max() * 1.18]))
-        fig.update_traces(textposition="outside", textfont=dict(size=13))
+        fig.update_traces(textposition="outside", textfont=dict(size=13),
+                          hovertemplate="<b>%{x}</b><br>%{y:.1f}%<extra></extra>")
         add_bar_icons(fig, counts["spec"].tolist(), this_spec_icons)
         fig.update_layout(dragmode=False)
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
@@ -990,7 +1001,8 @@ else:
                      text=avg_rat["avg_rating"].astype(int).apply(lambda x: f"{x:,}"),
                      color_discrete_sequence=[color],
                      template="plotly_dark")
-        fig.update_traces(textposition="outside", textfont=dict(size=13))
+        fig.update_traces(textposition="outside", textfont=dict(size=13),
+                          hovertemplate="<b>%{x}</b><br>%{y:,.0f}<extra></extra>")
         fig.update_layout(
             showlegend=False,
             yaxis=dict(range=[_ss_rat_floor, _ss_rat_max + (_ss_rat_max - _ss_rat_floor) * 0.18]),
@@ -1021,7 +1033,8 @@ else:
                      text=wr["bar_text"],
                      color_discrete_sequence=[color],
                      template="plotly_dark")
-        fig.update_traces(textposition="outside", textfont=dict(size=13))
+        fig.update_traces(textposition="outside", textfont=dict(size=13),
+                          hovertemplate="<b>%{x}</b><br>%{y:.1f}%<extra></extra>")
         fig.update_layout(
             showlegend=False,
             yaxis=dict(range=[_ss_wr_floor, _ss_wr_max + (_ss_wr_max - _ss_wr_floor) * 0.2]),
@@ -1079,6 +1092,7 @@ else:
                  labels={"spec": "", "pct": "% of Spec Players", "tier": "Tier"},
                  template="plotly_dark", barmode="stack")
     fig.update_layout(yaxis=dict(ticksuffix="%"), legend=dict(title="Tier", bgcolor="rgba(0,0,0,0)"))
+    fig.update_traces(hovertemplate="<b>%{x}</b><br>%{fullData.name}: %{y:.1f}%<extra></extra>")
     fig.update_layout(dragmode=False)
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
