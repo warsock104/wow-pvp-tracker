@@ -312,20 +312,32 @@ def load_bracket(bracket: str) -> pd.DataFrame:
 
 @st.cache_data(ttl=3600, show_spinner="Loading shuffle data...")
 def load_shuffle_class(class_name: str) -> pd.DataFrame:
+    # Supabase PostgREST caps responses at 1000 rows — query each bracket
+    # individually so the cap doesn't silently drop whole specs.
     slug = CLASS_SLUG_MAP[class_name]
-    resp = (
-        get_supabase()
-        .table("pvp_leaderboard")
-        .select("rank,character_class,spec,rating,wins,losses,played,faction,bracket,snapshot_date")
-        .like("bracket", f"shuffle-{slug}-%")
-        .order("snapshot_date", desc=True)
-        .limit(25000)
-        .execute()
-    )
-    df = pd.DataFrame(resp.data)
-    if not df.empty:
-        df = df[df["snapshot_date"] == df["snapshot_date"].max()]
-        df["win_rate"] = df["wins"] / df["played"].replace(0, pd.NA) * 100
+    specs = ALL_SPECS.get(class_name, [])
+    brackets = [f"shuffle-{slug}-{sp.lower()}" for sp in specs]
+
+    frames = []
+    for bracket in brackets:
+        resp = (
+            get_supabase()
+            .table("pvp_leaderboard")
+            .select("rank,character_class,spec,rating,wins,losses,played,faction,bracket,snapshot_date")
+            .eq("bracket", bracket)
+            .order("snapshot_date", desc=True)
+            .limit(1000)
+            .execute()
+        )
+        if resp.data:
+            frames.append(pd.DataFrame(resp.data))
+
+    if not frames:
+        return pd.DataFrame()
+
+    df = pd.concat(frames, ignore_index=True)
+    df = df[df["snapshot_date"] == df["snapshot_date"].max()]
+    df["win_rate"] = df["wins"] / df["played"].replace(0, pd.NA) * 100
     return df
 
 # ─────────────────────────────────────────────
