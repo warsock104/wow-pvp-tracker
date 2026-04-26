@@ -293,48 +293,38 @@ def load_last_updated() -> str:
         return ts.astimezone(timezone.utc).strftime("%b %d, %Y at %H:%M UTC")
     return "Unknown"
 
-@st.cache_data(ttl=3600)
-def get_latest_snapshot_date() -> str:
-    resp = (
-        get_supabase()
-        .table("pvp_leaderboard")
-        .select("snapshot_date")
-        .order("snapshot_date", desc=True)
-        .limit(1)
-        .execute()
-    )
-    return resp.data[0]["snapshot_date"] if resp.data else None
-
 @st.cache_data(ttl=3600, show_spinner="Loading leaderboard data...")
-def load_bracket(bracket: str, snapshot_date: str) -> pd.DataFrame:
+def load_bracket(bracket: str) -> pd.DataFrame:
     resp = (
         get_supabase()
         .table("pvp_leaderboard")
-        .select("rank,character_class,spec,rating,wins,losses,played,faction")
+        .select("rank,character_class,spec,rating,wins,losses,played,faction,snapshot_date")
         .eq("bracket", bracket)
-        .eq("snapshot_date", snapshot_date)
-        .limit(2000)
+        .order("snapshot_date", desc=True)
+        .limit(8000)
         .execute()
     )
     df = pd.DataFrame(resp.data)
     if not df.empty:
+        df = df[df["snapshot_date"] == df["snapshot_date"].max()]
         df["win_rate"] = df["wins"] / df["played"].replace(0, pd.NA) * 100
     return df
 
 @st.cache_data(ttl=3600, show_spinner="Loading shuffle data...")
-def load_shuffle_class(class_name: str, snapshot_date: str) -> pd.DataFrame:
+def load_shuffle_class(class_name: str) -> pd.DataFrame:
     slug = CLASS_SLUG_MAP[class_name]
     resp = (
         get_supabase()
         .table("pvp_leaderboard")
-        .select("rank,character_class,spec,rating,wins,losses,played,faction,bracket")
+        .select("rank,character_class,spec,rating,wins,losses,played,faction,bracket,snapshot_date")
         .like("bracket", f"shuffle-{slug}-%")
-        .eq("snapshot_date", snapshot_date)
-        .limit(5000)
+        .order("snapshot_date", desc=True)
+        .limit(25000)
         .execute()
     )
     df = pd.DataFrame(resp.data)
     if not df.empty:
+        df = df[df["snapshot_date"] == df["snapshot_date"].max()]
         df["win_rate"] = df["wins"] / df["played"].replace(0, pd.NA) * 100
     return df
 
@@ -348,13 +338,11 @@ selected_class = st.sidebar.selectbox(
     "Class", SHUFFLE_CLASSES, disabled=(mode != "Solo Shuffle")
 )
 
-_latest_date = get_latest_snapshot_date()
-
 if mode == "Solo Shuffle":
-    df = load_shuffle_class(selected_class, _latest_date)
+    df = load_shuffle_class(selected_class)
     page_title = f"Solo Shuffle — {selected_class}"
 else:
-    df = load_bracket(mode, _latest_date)
+    df = load_bracket(mode)
     page_title = f"{mode} Arena — Class & Spec Analytics"
 
 min_players = st.sidebar.slider("Min players per spec", 1, 50, 5)
