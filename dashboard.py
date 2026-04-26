@@ -523,6 +523,24 @@ if mode in ("2v2", "3v3", "Shuffle Rankings"):
 else:
     selected_classes = list(CLASS_COLORS.keys())
 
+# ── Rating range filter (arena / solo modes only) ─────────────────────────
+if mode != "Shuffle Rankings" and not df.empty and "rating" in df.columns:
+    _r_floor = (int(df["rating"].min()) // 100) * 100
+    _r_ceil  = ((int(df["rating"].max()) + 99) // 100) * 100
+    st.sidebar.markdown("**Rating Range**")
+    rating_range = st.sidebar.slider(
+        "Rating Range",
+        min_value=_r_floor,
+        max_value=_r_ceil,
+        value=(_r_floor, _r_ceil),
+        step=25,
+        label_visibility="collapsed",
+        key=f"rating_range_{mode}_{selected_class}",
+    )
+    rating_min, rating_max = rating_range
+else:
+    rating_min, rating_max = 0, 9999
+
 st.sidebar.divider()
 if st.sidebar.button("🔄 Reload Data"):
     st.cache_data.clear()
@@ -656,6 +674,7 @@ df_clean["role"] = df_clean.apply(
 if selected_roles:
     df_clean = df_clean[df_clean["role"].isin(selected_roles)]
 df_clean = df_clean[df_clean["character_class"].isin(selected_classes)]
+df_clean = df_clean[(df_clean["rating"] >= rating_min) & (df_clean["rating"] <= rating_max)]
 df_wr = df_clean
 
 if df_clean.empty:
