@@ -256,12 +256,9 @@ def push_to_supabase(supabase, season_id, bracket, data, profile_map=None):
                 "avg_win_rate":    round(sum(win_rates) / len(win_rates), 2) if win_rates else None,
             })
 
-        supabase.table("pvp_daily_summary").delete().eq(
-            "season_id", season_id
-        ).eq("snapshot_date", snapshot_date).eq("bracket", bracket).execute()
-        supabase.table("pvp_daily_summary").insert(summary_rows).execute()
+        return len(rows), summary_rows
 
-    return len(rows)
+    return len(rows), []
 
 # -----------------------------
 # Main
@@ -278,6 +275,9 @@ def main():
 
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+    all_summary_rows = []
+    snapshot_date = date.today().isoformat()
+
     for bracket in ALL_BRACKETS:
         print(f"  Fetching {bracket}...", end=" ", flush=True)
         try:
@@ -286,7 +286,7 @@ def main():
             print(f"skipped ({e.response.status_code})")
             continue
 
-        filename = f"season_{season_id}_{bracket}_{date.today().isoformat()}.json"
+        filename = f"season_{season_id}_{bracket}_{snapshot_date}.json"
         with open(os.path.join(OUTPUT_DIR, filename), "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
@@ -295,12 +295,24 @@ def main():
             entries = data.get("entries", [])
             print(f"enriching {len(entries)} profiles...", end=" ", flush=True)
             profile_map = enrich_with_profiles(token, entries)
-            count = push_to_supabase(supabase, season_id, bracket, data, profile_map=profile_map)
+            count, summary_rows = push_to_supabase(supabase, season_id, bracket, data, profile_map=profile_map)
         else:
-            count = push_to_supabase(supabase, season_id, bracket, data)
+            count, summary_rows = push_to_supabase(supabase, season_id, bracket, data)
 
+        all_summary_rows.extend(summary_rows)
         print(f"{count} entries inserted.")
         time.sleep(0.2)
+
+    # Only write summary data after all brackets succeed, preserving yesterday's
+    # data in case any bracket fetch fails mid-run.
+    if all_summary_rows:
+        supabase.table("pvp_daily_summary").delete().eq(
+            "season_id", season_id
+        ).eq("snapshot_date", snapshot_date).execute()
+        batch_size = 500
+        for i in range(0, len(all_summary_rows), batch_size):
+            supabase.table("pvp_daily_summary").insert(all_summary_rows[i:i + batch_size]).execute()
+        print(f"Summary written: {len(all_summary_rows)} rows.")
 
     cutoff = (date.today() - timedelta(days=7)).isoformat()
     supabase.table("pvp_leaderboard").delete().lt("snapshot_date", cutoff).execute()
