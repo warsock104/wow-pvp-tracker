@@ -256,10 +256,10 @@ def push_to_supabase(supabase, season_id, bracket, data, profile_map=None):
                 "avg_win_rate":    round(sum(win_rates) / len(win_rates), 2) if win_rates else None,
             })
 
-        supabase.table("pvp_daily_summary").upsert(
-            summary_rows,
-            on_conflict="season_id,snapshot_date,bracket,character_class,spec",
-        ).execute()
+        supabase.table("pvp_daily_summary").delete().eq(
+            "season_id", season_id
+        ).eq("snapshot_date", snapshot_date).eq("bracket", bracket).execute()
+        supabase.table("pvp_daily_summary").insert(summary_rows).execute()
 
     return len(rows)
 
