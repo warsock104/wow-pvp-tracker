@@ -244,16 +244,22 @@ def push_to_supabase(supabase, season_id, bracket, data, profile_map=None):
                 if r.get("wins") is not None and r.get("played")
             ]
             summary_rows.append({
-                "snapshot_date":   snapshot_date,
-                "season_id":       season_id,
-                "bracket":         bracket,
-                "character_class": cls,
-                "spec":            sp,
-                "players":         len(grp),
-                "avg_rating":      round(sum(ratings) / len(ratings), 2) if ratings else None,
-                "max_rating":      max(ratings) if ratings else None,
-                "min_rating":      min(ratings) if ratings else None,
-                "avg_win_rate":    round(sum(win_rates) / len(win_rates), 2) if win_rates else None,
+                "snapshot_date":    snapshot_date,
+                "season_id":        season_id,
+                "bracket":          bracket,
+                "character_class":  cls,
+                "spec":             sp,
+                "players":          len(grp),
+                "avg_rating":       round(sum(ratings) / len(ratings), 2) if ratings else None,
+                "max_rating":       max(ratings) if ratings else None,
+                "min_rating":       min(ratings) if ratings else None,
+                "avg_win_rate":     round(sum(win_rates) / len(win_rates), 2) if win_rates else None,
+                "count_2400_plus":  sum(1 for r in ratings if r >= 2400),
+                "count_2100_2400":  sum(1 for r in ratings if 2100 <= r < 2400),
+                "count_2000_2100":  sum(1 for r in ratings if 2000 <= r < 2100),
+                "count_1800_2000":  sum(1 for r in ratings if 1800 <= r < 2000),
+                "count_1600_1800":  sum(1 for r in ratings if 1600 <= r < 1800),
+                "count_sub_1600":   sum(1 for r in ratings if r < 1600),
             })
 
         return len(rows), summary_rows

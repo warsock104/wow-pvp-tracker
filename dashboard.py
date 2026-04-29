@@ -142,6 +142,15 @@ SPEC_ROLES = {
 
 RATING_BINS   = [0, 1600, 1800, 2000, 2100, 2400, float("inf")]
 RATING_LABELS = ["< 1600", "1600–1800", "1800–2000", "2000–2100", "2100–2400", "2400+"]
+TIER_COLUMN_MAP = {
+    "All":       "players",
+    "2400+":     "count_2400_plus",
+    "2100–2400": "count_2100_2400",
+    "2000–2100": "count_2000_2100",
+    "1800–2000": "count_1800_2000",
+    "1600–1800": "count_1600_1800",
+    "< 1600":    "count_sub_1600",
+}
 TIER_COLORS   = {
     "< 1600":    "#555566",
     "1600–1800": "#4a90d9",
@@ -392,7 +401,8 @@ def load_shuffle_rankings() -> pd.DataFrame:
         resp = (
             get_supabase()
             .table("pvp_daily_summary")
-            .select("snapshot_date,character_class,spec,players,avg_rating,avg_win_rate,bracket")
+            .select("snapshot_date,character_class,spec,players,avg_rating,avg_win_rate,bracket,"
+                    "count_2400_plus,count_2100_2400,count_2000_2100,count_1800_2000,count_1600_1800,count_sub_1600")
             .like("bracket", "shuffle-%")
             .order("snapshot_date", desc=True)
             .limit(1000)
@@ -539,6 +549,17 @@ if mode in ("2v2", "3v3", "Shuffle Rankings"):
 else:
     selected_classes = list(CLASS_COLORS.keys())
 
+if mode == "Shuffle Rankings":
+    st.sidebar.markdown("**Rating Tier**")
+    selected_tier = st.sidebar.selectbox(
+        "Rating Tier",
+        list(TIER_COLUMN_MAP.keys()),
+        label_visibility="collapsed",
+        key="shuffle_rankings_tier",
+    )
+else:
+    selected_tier = "All"
+
 st.sidebar.divider()
 if st.sidebar.button("🔄 Reload Data"):
     st.cache_data.clear()
@@ -592,15 +613,20 @@ if mode == "Shuffle Rankings":
     legend_style = dict(title="Class", bgcolor="rgba(0,0,0,0)", font=dict(size=11))
 
     # ── Spec Representation % ─────────────────────
-    total = rank_df["players"].sum()
+    tier_col = TIER_COLUMN_MAP[selected_tier]
+    for col in TIER_COLUMN_MAP.values():
+        if col in rank_df.columns:
+            rank_df[col] = pd.to_numeric(rank_df[col], errors="coerce").fillna(0).astype(int)
+    total = rank_df[tier_col].sum()
     rep = rank_df.copy()
-    rep["pct"] = (rep["players"] / total * 100).round(1)
+    rep["pct"] = (rep[tier_col] / total * 100).round(1) if total > 0 else 0.0
     rep = rep.sort_values("pct", ascending=False)
     ordered = rep["label"].tolist()
+    tier_label = f" — {selected_tier}" if selected_tier != "All" else ""
     fig = px.bar(rep, x="label", y="pct",
                  color="character_class", color_discrete_map=CLASS_COLORS,
                  category_orders={"label": ordered},
-                 title="Spec Representation % — All Shuffle Specs",
+                 title=f"Spec Representation %{tier_label} — All Shuffle Specs",
                  labels={"label": "", "pct": "% of Players"},
                  text=rep["pct"].apply(lambda x: f"{x:.1f}%"),
                  template="plotly_dark")
