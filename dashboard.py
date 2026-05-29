@@ -962,44 +962,102 @@ if mode in ("2v2", "3v3"):
     else:
         trend_df["snapshot_date"] = pd.to_datetime(trend_df["snapshot_date"])
         trend_df["avg_rating"] = pd.to_numeric(trend_df["avg_rating"], errors="coerce")
+        trend_df["avg_win_rate"] = pd.to_numeric(trend_df["avg_win_rate"], errors="coerce")
         trend_df["players"] = pd.to_numeric(trend_df["players"], errors="coerce")
 
-        # Weighted avg rating per class per day
-        class_trends = (
-            trend_df.groupby(["snapshot_date", "character_class"])
-            .apply(lambda g: pd.Series({
-                "players": g["players"].sum(),
-                "avg_rating": (g["avg_rating"] * g["players"]).sum() / g["players"].sum(),
-            }), include_groups=False)
-            .reset_index()
+        _arena_dates = sorted(trend_df["snapshot_date"].dt.date.unique())
+        _arena_date_range = st.slider(
+            "Date range",
+            min_value=_arena_dates[0],
+            max_value=_arena_dates[-1],
+            value=(_arena_dates[0], _arena_dates[-1]),
+            format="MMM DD",
+            key=f"arena_trend_dates_{mode}",
         )
-        class_trends = class_trends[class_trends["character_class"].isin(selected_classes)]
-        date_totals = class_trends.groupby("snapshot_date")["players"].sum().reset_index(name="total")
-        class_trends = class_trends.merge(date_totals, on="snapshot_date")
-        class_trends["pct"] = (class_trends["players"] / class_trends["total"] * 100).round(1)
+        trend_df = trend_df[
+            (trend_df["snapshot_date"].dt.date >= _arena_date_range[0]) &
+            (trend_df["snapshot_date"].dt.date <= _arena_date_range[1])
+        ]
 
-        tc1, tc2 = st.columns(2)
-        with tc1:
-            fig = px.line(class_trends, x="snapshot_date", y="avg_rating",
-                          color="character_class", color_discrete_map=CLASS_COLORS,
-                          title="Avg Rating by Class Over Time",
-                          labels={"snapshot_date": "", "avg_rating": "Avg Rating", "character_class": "Class"},
-                          template="plotly_dark")
-            fig.update_layout(legend=dict(title="Class", bgcolor="rgba(0,0,0,0)", font=dict(size=11)))
-            fig.update_layout(dragmode=False)
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-        with tc2:
-            fig = px.line(class_trends, x="snapshot_date", y="pct",
-                          color="character_class", color_discrete_map=CLASS_COLORS,
-                          title="Class Representation % Over Time",
-                          labels={"snapshot_date": "", "pct": "% of Players", "character_class": "Class"},
-                          template="plotly_dark")
-            fig.update_layout(
-                legend=dict(title="Class", bgcolor="rgba(0,0,0,0)", font=dict(size=11)),
-                yaxis=dict(ticksuffix="%"),
+        tab_cls, tab_spec = st.tabs(["By Class", "By Spec"])
+
+        with tab_cls:
+            class_trends = (
+                trend_df.groupby(["snapshot_date", "character_class"])
+                .apply(lambda g: pd.Series({
+                    "players": g["players"].sum(),
+                    "avg_rating": (g["avg_rating"] * g["players"]).sum() / g["players"].sum(),
+                }), include_groups=False)
+                .reset_index()
             )
-            fig.update_layout(dragmode=False)
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            class_trends = class_trends[class_trends["character_class"].isin(selected_classes)]
+            date_totals = class_trends.groupby("snapshot_date")["players"].sum().reset_index(name="total")
+            class_trends = class_trends.merge(date_totals, on="snapshot_date")
+            class_trends["pct"] = (class_trends["players"] / class_trends["total"] * 100).round(1)
+
+            tc1, tc2 = st.columns(2)
+            with tc1:
+                fig = px.line(class_trends, x="snapshot_date", y="avg_rating",
+                              color="character_class", color_discrete_map=CLASS_COLORS,
+                              title="Avg Rating by Class Over Time",
+                              labels={"snapshot_date": "", "avg_rating": "Avg Rating", "character_class": "Class"},
+                              template="plotly_dark")
+                fig.update_layout(legend=dict(title="Class", bgcolor="rgba(0,0,0,0)", font=dict(size=11)))
+                fig.update_layout(dragmode=False)
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            with tc2:
+                fig = px.line(class_trends, x="snapshot_date", y="pct",
+                              color="character_class", color_discrete_map=CLASS_COLORS,
+                              title="Class Representation % Over Time",
+                              labels={"snapshot_date": "", "pct": "% of Players", "character_class": "Class"},
+                              template="plotly_dark")
+                fig.update_layout(
+                    legend=dict(title="Class", bgcolor="rgba(0,0,0,0)", font=dict(size=11)),
+                    yaxis=dict(ticksuffix="%"),
+                )
+                fig.update_layout(dragmode=False)
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+        with tab_spec:
+            spec_trends = trend_df[trend_df["character_class"].isin(selected_classes)].copy()
+            spec_trends["role"] = spec_trends.apply(
+                lambda r: SPEC_ROLES.get((r["character_class"], r["spec"]), "Unknown"), axis=1
+            )
+            if selected_roles:
+                spec_trends = spec_trends[spec_trends["role"].isin(selected_roles)]
+            spec_trends["label"] = spec_trends["spec"] + " (" + spec_trends["character_class"] + ")"
+            _st_date_totals = spec_trends.groupby("snapshot_date")["players"].sum().reset_index(name="total")
+            spec_trends = spec_trends.merge(_st_date_totals, on="snapshot_date")
+            spec_trends["pct"] = (spec_trends["players"] / spec_trends["total"] * 100).round(1)
+
+            _unique_labels = spec_trends["label"].unique()
+            _spec_color_map = {
+                lbl: CLASS_COLORS.get(lbl.split("(")[-1].rstrip(")").strip(), "#888888")
+                for lbl in _unique_labels
+            }
+
+            ts1, ts2 = st.columns(2)
+            with ts1:
+                fig = px.line(spec_trends, x="snapshot_date", y="avg_rating",
+                              color="label", color_discrete_map=_spec_color_map,
+                              title="Avg Rating by Spec Over Time",
+                              labels={"snapshot_date": "", "avg_rating": "Avg Rating", "label": "Spec"},
+                              template="plotly_dark")
+                fig.update_layout(legend=dict(title="Spec", bgcolor="rgba(0,0,0,0)", font=dict(size=11)))
+                fig.update_layout(dragmode=False)
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            with ts2:
+                fig = px.line(spec_trends, x="snapshot_date", y="pct",
+                              color="label", color_discrete_map=_spec_color_map,
+                              title="Spec Representation % Over Time",
+                              labels={"snapshot_date": "", "pct": "% of Players", "label": "Spec"},
+                              template="plotly_dark")
+                fig.update_layout(
+                    legend=dict(title="Spec", bgcolor="rgba(0,0,0,0)", font=dict(size=11)),
+                    yaxis=dict(ticksuffix="%"),
+                )
+                fig.update_layout(dragmode=False)
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 # ─────────────────────────────────────────────
 # SOLO SHUFFLE MODE
@@ -1179,10 +1237,26 @@ else:
             trend_df = trend_df[trend_df.apply(
                 lambda r: SPEC_ROLES.get((r["character_class"], r["spec"]), "Unknown") in selected_roles, axis=1
             )]
+
+        _shuf_dates = sorted(trend_df["snapshot_date"].dt.date.unique())
+        _shuf_date_range = st.slider(
+            "Date range",
+            min_value=_shuf_dates[0],
+            max_value=_shuf_dates[-1],
+            value=(_shuf_dates[0], _shuf_dates[-1]),
+            format="MMM DD",
+            key=f"shuf_trend_dates_{selected_class}",
+        )
+        trend_df = trend_df[
+            (trend_df["snapshot_date"].dt.date >= _shuf_date_range[0]) &
+            (trend_df["snapshot_date"].dt.date <= _shuf_date_range[1])
+        ]
+
         date_totals = trend_df.groupby("snapshot_date")["players"].sum().reset_index(name="total")
         trend_df = trend_df.merge(date_totals, on="snapshot_date")
         trend_df["pct"] = (trend_df["players"] / trend_df["total"] * 100).round(1)
 
+        _legend = dict(title="Spec", bgcolor="rgba(0,0,0,0)")
         ts1, ts2 = st.columns(2)
         with ts1:
             fig = px.line(trend_df, x="snapshot_date", y="avg_rating", color="spec",
@@ -1190,8 +1264,7 @@ else:
                           labels={"snapshot_date": "", "avg_rating": "Avg Rating", "spec": "Spec"},
                           color_discrete_sequence=px.colors.qualitative.Set2,
                           template="plotly_dark")
-            fig.update_layout(legend=dict(title="Spec", bgcolor="rgba(0,0,0,0)"))
-            fig.update_layout(dragmode=False)
+            fig.update_layout(legend=_legend, dragmode=False)
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         with ts2:
             fig = px.line(trend_df, x="snapshot_date", y="pct", color="spec",
@@ -1199,9 +1272,17 @@ else:
                           labels={"snapshot_date": "", "pct": "% of Players", "spec": "Spec"},
                           color_discrete_sequence=px.colors.qualitative.Set2,
                           template="plotly_dark")
-            fig.update_layout(
-                legend=dict(title="Spec", bgcolor="rgba(0,0,0,0)"),
-                yaxis=dict(ticksuffix="%"),
-            )
-            fig.update_layout(dragmode=False)
+            fig.update_layout(legend=_legend, yaxis=dict(ticksuffix="%"), dragmode=False)
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+        _wr_trend = trend_df[trend_df["avg_win_rate"].notna()]
+        if not _wr_trend.empty:
+            fig = px.line(_wr_trend, x="snapshot_date", y="avg_win_rate", color="spec",
+                          title="Avg Win Rate by Spec Over Time",
+                          labels={"snapshot_date": "", "avg_win_rate": "Win Rate %", "spec": "Spec"},
+                          color_discrete_sequence=px.colors.qualitative.Set2,
+                          template="plotly_dark")
+            fig.update_layout(legend=_legend, yaxis=dict(ticksuffix="%"), dragmode=False)
+            fig.add_hline(y=50, line_dash="dash", line_color="rgba(255,255,255,0.25)",
+                          annotation_text="50%", annotation_position="top left")
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
