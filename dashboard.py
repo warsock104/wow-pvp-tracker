@@ -303,16 +303,22 @@ def get_supabase():
 @st.cache_data(ttl=3600)
 def load_arena_trends(bracket: str) -> pd.DataFrame:
     try:
-        resp = (
-            get_supabase()
-            .table("pvp_daily_summary")
-            .select("*")
-            .eq("bracket", bracket)
-            .order("snapshot_date")
-            .limit(5000)
-            .execute()
-        )
-        return pd.DataFrame(resp.data)
+        rows, offset = [], 0
+        while True:
+            resp = (
+                get_supabase()
+                .table("pvp_daily_summary")
+                .select("*")
+                .eq("bracket", bracket)
+                .order("snapshot_date")
+                .range(offset, offset + 999)
+                .execute()
+            )
+            rows.extend(resp.data)
+            if len(resp.data) < 1000:
+                break
+            offset += 1000
+        return pd.DataFrame(rows)
     except Exception:
         return pd.DataFrame()
 
