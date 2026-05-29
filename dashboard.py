@@ -1009,8 +1009,7 @@ if mode in ("2v2", "3v3"):
                               title="Avg Rating by Class Over Time",
                               labels={"snapshot_date": "", "avg_rating": "Avg Rating", "character_class": "Class"},
                               template="plotly_dark")
-                fig.update_layout(legend=dict(title="Class", bgcolor="rgba(0,0,0,0)", font=dict(size=11)))
-                fig.update_layout(dragmode=False)
+                fig.update_layout(legend=dict(title="Class", bgcolor="rgba(0,0,0,0)", font=dict(size=11)), dragmode=False, xaxis=dict(tickformat="%b %d"))
                 st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
             with tc2:
                 fig = px.line(class_trends, x="snapshot_date", y="pct",
@@ -1021,8 +1020,8 @@ if mode in ("2v2", "3v3"):
                 fig.update_layout(
                     legend=dict(title="Class", bgcolor="rgba(0,0,0,0)", font=dict(size=11)),
                     yaxis=dict(ticksuffix="%"),
+                    dragmode=False, xaxis=dict(tickformat="%b %d"),
                 )
-                fig.update_layout(dragmode=False)
                 st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
         with tab_spec:
@@ -1050,8 +1049,7 @@ if mode in ("2v2", "3v3"):
                               title="Avg Rating by Spec Over Time",
                               labels={"snapshot_date": "", "avg_rating": "Avg Rating", "label": "Spec"},
                               template="plotly_dark")
-                fig.update_layout(legend=dict(title="Spec", bgcolor="rgba(0,0,0,0)", font=dict(size=11)))
-                fig.update_layout(dragmode=False)
+                fig.update_layout(legend=dict(title="Spec", bgcolor="rgba(0,0,0,0)", font=dict(size=11)), dragmode=False, xaxis=dict(tickformat="%b %d"))
                 st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
             with ts2:
                 fig = px.line(spec_trends, x="snapshot_date", y="pct",
@@ -1062,8 +1060,8 @@ if mode in ("2v2", "3v3"):
                 fig.update_layout(
                     legend=dict(title="Spec", bgcolor="rgba(0,0,0,0)", font=dict(size=11)),
                     yaxis=dict(ticksuffix="%"),
+                    dragmode=False, xaxis=dict(tickformat="%b %d"),
                 )
-                fig.update_layout(dragmode=False)
                 st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 # ─────────────────────────────────────────────
@@ -1271,7 +1269,7 @@ else:
                           labels={"snapshot_date": "", "avg_rating": "Avg Rating", "spec": "Spec"},
                           color_discrete_sequence=px.colors.qualitative.Set2,
                           template="plotly_dark")
-            fig.update_layout(legend=_legend, dragmode=False)
+            fig.update_layout(legend=_legend, dragmode=False, xaxis=dict(tickformat="%b %d"))
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         with ts2:
             fig = px.line(trend_df, x="snapshot_date", y="pct", color="spec",
@@ -1279,7 +1277,7 @@ else:
                           labels={"snapshot_date": "", "pct": "% of Players", "spec": "Spec"},
                           color_discrete_sequence=px.colors.qualitative.Set2,
                           template="plotly_dark")
-            fig.update_layout(legend=_legend, yaxis=dict(ticksuffix="%"), dragmode=False)
+            fig.update_layout(legend=_legend, yaxis=dict(ticksuffix="%"), dragmode=False, xaxis=dict(tickformat="%b %d"))
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
         _wr_trend = trend_df[trend_df["avg_win_rate"].notna()]
@@ -1289,7 +1287,7 @@ else:
                           labels={"snapshot_date": "", "avg_win_rate": "Win Rate %", "spec": "Spec"},
                           color_discrete_sequence=px.colors.qualitative.Set2,
                           template="plotly_dark")
-            fig.update_layout(legend=_legend, yaxis=dict(ticksuffix="%"), dragmode=False)
+            fig.update_layout(legend=_legend, yaxis=dict(ticksuffix="%"), dragmode=False, xaxis=dict(tickformat="%b %d"))
             fig.add_hline(y=50, line_dash="dash", line_color="rgba(255,255,255,0.25)",
                           annotation_text="50%", annotation_position="top left")
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
