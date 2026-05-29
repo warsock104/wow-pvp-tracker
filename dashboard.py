@@ -309,6 +309,7 @@ def load_arena_trends(bracket: str) -> pd.DataFrame:
             .select("*")
             .eq("bracket", bracket)
             .order("snapshot_date")
+            .limit(5000)
             .execute()
         )
         return pd.DataFrame(resp.data)
